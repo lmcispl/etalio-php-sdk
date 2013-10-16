@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright 2011 Facebook, Inc.
+ * Copyright 2011 Etalio, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may obtain
@@ -15,13 +15,13 @@
  * under the License.
  */
 
-require_once "base_facebook.php";
+require_once "base_etalio.php";
 
 /**
- * Extends the BaseFacebook class with the intent of using
+ * Extends the BaseEtalio class with the intent of using
  * PHP sessions to store user ids and access tokens.
  */
-class Facebook extends BaseFacebook
+class Etalio extends BaseEtalio
 {
   const FBSS_COOKIE_NAME = 'fbss';
 
@@ -42,7 +42,7 @@ class Facebook extends BaseFacebook
    * accepts "sharedSession" as a boolean to turn on a secondary
    * cookie for environments with a shared session (that is, your app
    * shares the domain with other apps).
-   * @see BaseFacebook::__construct in facebook.php
+   * @see BaseEtalio::__construct in etalio.php
    */
   public function __construct($config) {
     if (!session_id()) {
@@ -53,14 +53,14 @@ class Facebook extends BaseFacebook
       $this->initSharedSession();
 
       // re-load the persisted state, since parent
-      // attempted to read out of non-shared cookie 
+      // attempted to read out of non-shared cookie
       $state = $this->getPersistentData('state');
       if (!empty($state)) {
         $this->state = $state;
       } else {
         $this->state = null;
       }
- 
+
     }
   }
 
@@ -96,7 +96,7 @@ class Facebook extends BaseFacebook
       // @codeCoverageIgnoreStart
       self::errorLog(
         'Shared session ID cookie could not be set! You must ensure you '.
-        'create the Facebook instance before headers have been sent. This '.
+        'create the Etalio instance before headers have been sent. This '.
         'will cause authentication issues after the first request.'
       );
       // @codeCoverageIgnoreEnd

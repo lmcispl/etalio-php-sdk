@@ -1,11 +1,15 @@
 {
-    "name": "facebook/php-sdk",
-    "description": "Facebook PHP SDK",
-    "keywords": ["facebook", "sdk"],
+    "name": "etalio/php-sdk",
+    "description": "Etalio PHP SDK",
+    "keywords": ["etalio", "sdk"],
     "type": "library",
-    "homepage": "https://github.com/facebook/facebook-php-sdk",
-    "license": "Apache2",
+    "homepage": "https://github.com/etalio/etalio-php-sdk",
+    "license": "MPL2.0",
     "authors": [
+        {
+            "name": "Etalio",
+            "homepage": "https://github.com/Etalio/etalio-php-sdk/contributors"
+        },
         {
             "name": "Facebook",
             "homepage": "https://github.com/facebook/facebook-php-sdk/contributors"

@@ -1,20 +1,20 @@
 <?php
 
-require '../src/facebook.php';
+require '../src/etalio.php';
 
-$facebook = new Facebook(array(
+$etalio = new Etalio(array(
   'appId'  => '344617158898614',
   'secret' => '6dc8ac871858b34798bc2488200e503d',
 ));
 
 // See if there is a user from a cookie
-$user = $facebook->getUser();
+$user = $etalio->getUser();
 
 if ($user) {
   try {
     // Proceed knowing you have a logged in user who's authenticated.
-    $user_profile = $facebook->api('/me');
-  } catch (FacebookApiException $e) {
+    $user_profile = $etalio->api('/me');
+  } catch (EtalioApiException $e) {
     echo '<pre>'.htmlspecialchars(print_r($e, true)).'</pre>';
     $user = null;
   }
@@ -22,7 +22,7 @@ if ($user) {
 
 ?>
 <!DOCTYPE html>
-<html xmlns:fb="http://www.facebook.com/2008/fbml">
+<html xmlns:fb="http://www.etalio.com/2008/fbml">
   <body>
     <?php if ($user) { ?>
       Your user profile is
@@ -36,7 +36,7 @@ if ($user) {
     <script>
       window.fbAsyncInit = function() {
         FB.init({
-          appId: '<?php echo $facebook->getAppID() ?>',
+          appId: '<?php echo $etalio->getAppID() ?>',
           cookie: true,
           xfbml: true,
           oauth: true
@@ -51,7 +51,7 @@ if ($user) {
       (function() {
         var e = document.createElement('script'); e.async = true;
         e.src = document.location.protocol +
-          '//connect.facebook.net/en_US/all.js';
+          '//connect.etalio.net/en_US/all.js';
         document.getElementById('fb-root').appendChild(e);
       }());
     </script>
