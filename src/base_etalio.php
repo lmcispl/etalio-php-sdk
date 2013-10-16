@@ -1,6 +1,6 @@
 <?php
 /**
- * Copyright 2011 Facebook, Inc.
+ * Copyright 2011 Etalio, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may
  * not use this file except in compliance with the License. You may obtain
@@ -16,10 +16,10 @@
  */
 
 if (!function_exists('curl_init')) {
-  throw new Exception('Facebook needs the CURL PHP extension.');
+  throw new Exception('Etalio needs the CURL PHP extension.');
 }
 if (!function_exists('json_decode')) {
-  throw new Exception('Facebook needs the JSON PHP extension.');
+  throw new Exception('Etalio needs the JSON PHP extension.');
 }
 
 /**
@@ -27,7 +27,7 @@ if (!function_exists('json_decode')) {
  *
  * @author Naitik Shah <naitik@facebook.com>
  */
-class FacebookApiException extends Exception
+class EtalioApiException extends Exception
 {
   /**
    * The result from the API server that represents the exception information.
@@ -107,15 +107,15 @@ class FacebookApiException extends Exception
 }
 
 /**
- * Provides access to the Facebook Platform.  This class provides
+ * Provides access to the Etalio Platform.  This class provides
  * a majority of the functionality needed, but the class is abstract
  * because it is designed to be sub-classed.  The subclass must
  * implement the four abstract methods listed at the bottom of
  * the file.
  *
- * @author Naitik Shah <naitik@facebook.com>
+ * @author Naitik Shah <naitik@etalio.com>
  */
-abstract class BaseFacebook
+abstract class BaseEtalio
 {
   /**
    * Version.
@@ -134,7 +134,7 @@ abstract class BaseFacebook
     CURLOPT_CONNECTTIMEOUT => 10,
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_TIMEOUT        => 60,
-    CURLOPT_USERAGENT      => 'facebook-php-3.2',
+    CURLOPT_USERAGENT      => 'etalio-php-3.2',
   );
 
   /**
@@ -148,15 +148,15 @@ abstract class BaseFacebook
   );
 
   /**
-   * Maps aliases to Facebook domains.
+   * Maps aliases to Etalio domains.
    */
   public static $DOMAIN_MAP = array(
-    'api'         => 'https://api.facebook.com/',
-    'api_video'   => 'https://api-video.facebook.com/',
-    'api_read'    => 'https://api-read.facebook.com/',
-    'graph'       => 'https://graph.facebook.com/',
-    'graph_video' => 'https://graph-video.facebook.com/',
-    'www'         => 'https://www.facebook.com/',
+    'api'         => 'https://api.etalio.com/',
+    'api_video'   => 'https://api-video.etalio.com/',
+    'api_read'    => 'https://api-read.etalio.com/',
+    'graph'       => 'https://graph.etalio.com/',
+    'graph_video' => 'https://graph-video.etalio.com/',
+    'www'         => 'https://www.etalio.com/',
   );
 
   /**
@@ -174,7 +174,7 @@ abstract class BaseFacebook
   protected $appSecret;
 
   /**
-   * The ID of the Facebook user, or 0 if the user is logged out.
+   * The ID of the Etalio user, or 0 if the user is logged out.
    *
    * @var integer
    */
@@ -213,7 +213,7 @@ abstract class BaseFacebook
   protected $trustForwarded = false;
 
   /**
-   * Initialize a Facebook Application.
+   * Initialize a Etalio Application.
    *
    * The configuration:
    * - appId: the application ID
@@ -241,7 +241,7 @@ abstract class BaseFacebook
    * Set the Application ID.
    *
    * @param string $appId The Application ID
-   * @return BaseFacebook
+   * @return BaseEtalio
    */
   public function setAppId($appId) {
     $this->appId = $appId;
@@ -261,7 +261,7 @@ abstract class BaseFacebook
    * Set the App Secret.
    *
    * @param string $apiSecret The App Secret
-   * @return BaseFacebook
+   * @return BaseEtalio
    * @deprecated Use setAppSecret instead.
    */
   public function setApiSecret($apiSecret) {
@@ -273,7 +273,7 @@ abstract class BaseFacebook
    * Set the App Secret.
    *
    * @param string $appSecret The App Secret
-   * @return BaseFacebook
+   * @return BaseEtalio
    */
   public function setAppSecret($appSecret) {
     $this->appSecret = $appSecret;
@@ -303,7 +303,7 @@ abstract class BaseFacebook
    * Set the file upload support status.
    *
    * @param boolean $fileUploadSupport The file upload support status.
-   * @return BaseFacebook
+   * @return BaseEtalio
    */
   public function setFileUploadSupport($fileUploadSupport) {
     $this->fileUploadSupport = $fileUploadSupport;
@@ -335,7 +335,7 @@ abstract class BaseFacebook
    * to use it.
    *
    * @param string $access_token an access token.
-   * @return BaseFacebook
+   * @return BaseEtalio
    */
   public function setAccessToken($access_token) {
     $this->accessToken = $access_token;
@@ -361,7 +361,7 @@ abstract class BaseFacebook
         )
       );
     }
-    catch (FacebookApiException $e) {
+    catch (EtalioApiException $e) {
       // most likely that user very recently revoked authorization.
       // In any event, we don't have an access token, so say so.
       return false;
@@ -428,7 +428,7 @@ abstract class BaseFacebook
     // the access token.
     $signed_request = $this->getSignedRequest();
     if ($signed_request) {
-      // apps.facebook.com hands the access_token in the signed_request
+      // apps.etalio.com hands the access_token in the signed_request
       if (array_key_exists('oauth_token', $signed_request)) {
         $access_token = $signed_request['oauth_token'];
         $this->setPersistentData('access_token', $access_token);
@@ -500,7 +500,7 @@ abstract class BaseFacebook
 
   /**
    * Get the UID of the connected user, or 0
-   * if the Facebook user is not connected.
+   * if the Etalio user is not connected.
    *
    * @return string the UID if available.
    */
@@ -518,7 +518,7 @@ abstract class BaseFacebook
    * requests, then considering an authorization code, and then
    * falling back to any persistent store storing the user.
    *
-   * @return integer The id of the connected Facebook user,
+   * @return integer The id of the connected Etalio user,
    *                 or 0 if no such user exists.
    */
   protected function getUserFromAvailableData() {
@@ -620,7 +620,7 @@ abstract class BaseFacebook
   }
 
   /**
-   * Get a login status URL to fetch the status from Facebook.
+   * Get a login status URL to fetch the status from Etalio.
    *
    * @param array $params Provide custom parameters
    * @return string The URL for the logout flow
@@ -651,7 +651,7 @@ abstract class BaseFacebook
   /**
    * Constructs and returns the name of the cookie that
    * potentially houses the signed request for the app user.
-   * The cookie is not set by the BaseFacebook class, but
+   * The cookie is not set by the BaseEtalio class, but
    * it may be set by the JavaScript SDK.
    *
    * @return string the name of the cookie that would house
@@ -663,7 +663,7 @@ abstract class BaseFacebook
 
   /**
    * Constructs and returns the name of the coookie that potentially contain
-   * metadata. The cookie is not set by the BaseFacebook class, but it may be
+   * metadata. The cookie is not set by the BaseEtalio class, but it may be
    * set by the JavaScript SDK.
    *
    * @return string the name of the cookie that would house metadata.
@@ -702,18 +702,18 @@ abstract class BaseFacebook
   /**
    * Retrieves the UID with the understanding that
    * $this->accessToken has already been set and is
-   * seemingly legitimate.  It relies on Facebook's Graph API
+   * seemingly legitimate.  It relies on Etalio's Graph API
    * to retrieve user information and then extract
    * the user ID.
    *
-   * @return integer Returns the UID of the Facebook user, or 0
-   *                 if the Facebook user could not be determined.
+   * @return integer Returns the UID of the Etalio user, or 0
+   *                 if the Etalio user could not be determined.
    */
   protected function getUserFromAccessToken() {
     try {
       $user_info = $this->api('/me');
       return $user_info['id'];
-    } catch (FacebookApiException $e) {
+    } catch (EtalioApiException $e) {
       return 0;
     }
   }
@@ -743,11 +743,11 @@ abstract class BaseFacebook
 
   /**
    * Retrieves an access token for the given authorization code
-   * (previously generated from www.facebook.com on behalf of
-   * a specific user).  The authorization code is sent to graph.facebook.com
+   * (previously generated from www.etalio.com on behalf of
+   * a specific user).  The authorization code is sent to graph.etalio.com
    * and a legitimate access token is generated provided the access token
    * and the user for which it was generated all match, and the user is
-   * either logged in to Facebook or has granted an offline access permission.
+   * either logged in to Etalio or has granted an offline access permission.
    *
    * @param string $code An authorization code.
    * @return mixed An access token exchanged for the authorization code, or
@@ -772,7 +772,7 @@ abstract class BaseFacebook
                           'client_secret' => $this->getAppSecret(),
                           'redirect_uri' => $redirect_uri,
                           'code' => $code));
-    } catch (FacebookApiException $e) {
+    } catch (EtalioApiException $e) {
       // most likely that user very recently revoked authorization.
       // In any event, we don't have an access token, so say so.
       return false;
@@ -797,7 +797,7 @@ abstract class BaseFacebook
    * @param array $params Method call object
    *
    * @return mixed The decoded response object
-   * @throws FacebookApiException
+   * @throws EtalioApiException
    */
   protected function _restserver($params) {
     // generic application level parameters
@@ -848,7 +848,7 @@ abstract class BaseFacebook
    * @param array $params The query/post data
    *
    * @return mixed The decoded response object
-   * @throws FacebookApiException
+   * @throws EtalioApiException
    */
   protected function _graph($path, $method = 'GET', $params = array()) {
     if (is_array($method) && empty($params)) {
@@ -885,7 +885,7 @@ abstract class BaseFacebook
    * @param array $params The query/post data
    *
    * @return string The decoded response object
-   * @throws FacebookApiException
+   * @throws EtalioApiException
    */
   protected function _oauthRequest($url, $params) {
     if (!isset($params['access_token'])) {
@@ -955,7 +955,7 @@ abstract class BaseFacebook
 
     curl_setopt_array($ch, $opts);
     $result = curl_exec($ch);
-    
+
     $errno = curl_errno($ch);
     // CURLE_SSL_CACERT || CURLE_SSL_CACERT_BADFILE
     if ($errno == 60 || $errno == 77) {
@@ -986,7 +986,7 @@ abstract class BaseFacebook
     }
 
     if ($result === false) {
-      $e = new FacebookApiException(array(
+      $e = new EtalioApiException(array(
         'error_code' => curl_errno($ch),
         'error' => array(
         'message' => curl_error($ch),
@@ -1234,7 +1234,7 @@ abstract class BaseFacebook
   /**
    * Returns true if and only if the key or key/value pair should
    * be retained as part of the query string.  This amounts to
-   * a brute-force search of the very small list of Facebook-specific
+   * a brute-force search of the very small list of Etalio-specific
    * params that should be stripped out.
    *
    * @param string $param A key or key/value pair within a URL's query (e.g.
@@ -1261,7 +1261,7 @@ abstract class BaseFacebook
    *                      by a failed API call.
    */
   protected function throwAPIException($result) {
-    $e = new FacebookApiException($result);
+    $e = new EtalioApiException($result);
     switch ($e->getType()) {
       // OAuth 2.0 Draft 00 style
       case 'OAuthException':
@@ -1405,12 +1405,12 @@ abstract class BaseFacebook
 
   /**
    * Each of the following four methods should be overridden in
-   * a concrete subclass, as they are in the provided Facebook class.
-   * The Facebook class uses PHP sessions to provide a primitive
+   * a concrete subclass, as they are in the provided Etalio class.
+   * The Etalio class uses PHP sessions to provide a primitive
    * persistent store, but another subclass--one that you implement--
    * might use a database, memcache, or an in-memory cache.
    *
-   * @see Facebook
+   * @see Etalio
    */
 
   /**
@@ -1425,7 +1425,7 @@ abstract class BaseFacebook
   abstract protected function setPersistentData($key, $value);
 
   /**
-   * Get the data for $key, persisted by BaseFacebook::setPersistentData()
+   * Get the data for $key, persisted by BaseEtalio::setPersistentData()
    *
    * @param string $key The key of the data to retrieve
    * @param boolean $default The default value to return if $key is not found
