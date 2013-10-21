@@ -1,20 +1,4 @@
 <?php
-/**
- * Copyright 2011 Etalio, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain
- * a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
- */
-
 if (!function_exists('curl_init')) {
   throw new Exception('Etalio needs the CURL PHP extension.');
 }
@@ -112,30 +96,23 @@ class EtalioApiException extends Exception
  * because it is designed to be sub-classed.  The subclass must
  * implement the four abstract methods listed at the bottom of
  * the file.
- *
- * @author Naitik Shah <naitik@etalio.com>
  */
 abstract class BaseEtalio
 {
   /**
-   * Version.
+   * Server Url
    */
-  const VERSION = '3.2.2';
+  const BASE_URL = "https://api-etalio.3fs.si";
 
   /**
-   * Signed Request Algorithm.
+   * APi version
    */
-  const SIGNED_REQUEST_ALGORITHM = 'HMAC-SHA256';
+  const API_VERSION = "v0.0.1";
 
   /**
-   * Default options for curl.
+   * Version of this SDK
    */
-  public static $CURL_OPTS = array(
-    CURLOPT_CONNECTTIMEOUT => 10,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT        => 60,
-    CURLOPT_USERAGENT      => 'etalio-php-3.2',
-  );
+  const VERSION = '0.1.0';
 
   /**
    * List of query parameters that get automatically dropped when rebuilding
@@ -144,21 +121,17 @@ abstract class BaseEtalio
   protected static $DROP_QUERY_PARAMS = array(
     'code',
     'state',
-    'signed_request',
   );
+
+  /**
+   * Default options for curl.
+   */
+  protected $curlOpts;
 
   /**
    * Maps aliases to Etalio domains.
    */
-  public static $DOMAIN_MAP = array(
-    'api'         => 'https://api.etalio.com/',
-    'api_video'   => 'https://api-video.etalio.com/',
-    'api_read'    => 'https://api-read.etalio.com/',
-    'graph'       => 'https://graph.etalio.com/',
-    'graph_video' => 'https://graph-video.etalio.com/',
-    'www'         => 'https://www.etalio.com/',
-  );
-
+  protected $domainMap;
   /**
    * The Application ID.
    *
@@ -181,11 +154,6 @@ abstract class BaseEtalio
   protected $user;
 
   /**
-   * The data from the signed_request token.
-   */
-  protected $signedRequest;
-
-  /**
    * A CSRF state variable to assist in the defense against CSRF attacks.
    */
   protected $state;
@@ -199,20 +167,6 @@ abstract class BaseEtalio
   protected $accessToken = null;
 
   /**
-   * Indicates if the CURL based @ syntax for file uploads is enabled.
-   *
-   * @var boolean
-   */
-  protected $fileUploadSupport = false;
-
-  /**
-   * Indicates if we trust HTTP_X_FORWARDED_* headers.
-   *
-   * @var boolean
-   */
-  protected $trustForwarded = false;
-
-  /**
    * Initialize a Etalio Application.
    *
    * The configuration:
@@ -223,14 +177,22 @@ abstract class BaseEtalio
    * @param array $config The application configuration
    */
   public function __construct($config) {
+    $this->domainMap = array(
+      'api'       => self::BASE_URL,
+      'www'       => 'http://www.etalio.com',
+      'auth'      => self::BASE_URL . '/oauth2',
+      'token'     => self::BASE_URL . '/oauth2/token',
+      'profile'   => self::BASE_URL . '/' . self::API_VERSION . '/user',
+      'apps'      => self::BASE_URL . '/' . self::API_VERSION . '/user/applications',
+    );
+    $this->curlOpts = array(
+      CURLOPT_CONNECTTIMEOUT => 10,
+      CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_TIMEOUT        => 60,
+      CURLOPT_USERAGENT      => 'etalio-php-'.self::VERSION,
+    );
     $this->setAppId($config['appId']);
     $this->setAppSecret($config['secret']);
-    if (isset($config['fileUpload'])) {
-      $this->setFileUploadSupport($config['fileUpload']);
-    }
-    if (isset($config['trustForwarded']) && $config['trustForwarded']) {
-      $this->trustForwarded = true;
-    }
     $state = $this->getPersistentData('state');
     if (!empty($state)) {
       $this->state = $state;
@@ -255,6 +217,10 @@ abstract class BaseEtalio
    */
   public function getAppId() {
     return $this->appId;
+  }
+
+  public function getCurlOpts() {
+    return $this->curlOpts;
   }
 
   /**
@@ -300,36 +266,6 @@ abstract class BaseEtalio
   }
 
   /**
-   * Set the file upload support status.
-   *
-   * @param boolean $fileUploadSupport The file upload support status.
-   * @return BaseEtalio
-   */
-  public function setFileUploadSupport($fileUploadSupport) {
-    $this->fileUploadSupport = $fileUploadSupport;
-    return $this;
-  }
-
-  /**
-   * Get the file upload support status.
-   *
-   * @return boolean true if and only if the server supports file upload.
-   */
-  public function getFileUploadSupport() {
-    return $this->fileUploadSupport;
-  }
-
-  /**
-   * Get the file upload support status.
-   *
-   * @return boolean true if and only if the server supports file upload.
-   * @deprecated Use getFileUploadSupport instead.
-   */
-  public function useFileUploadSupport() {
-    return $this->getFileUploadSupport();
-  }
-
-  /**
    * Sets the access token for api calls.  Use this if you get
    * your access token by other means and just want the SDK
    * to use it.
@@ -356,8 +292,7 @@ abstract class BaseEtalio
         $params = array(
           'client_id' => $this->getAppId(),
           'client_secret' => $this->getAppSecret(),
-          'grant_type' => 'fb_exchange_token',
-          'fb_exchange_token' => $this->getAccessToken(),
+          'grant_type' => 'authorization_code',
         )
       );
     }
@@ -423,41 +358,6 @@ abstract class BaseEtalio
    *                could not be determined.
    */
   protected function getUserAccessToken() {
-    // first, consider a signed request if it's supplied.
-    // if there is a signed request, then it alone determines
-    // the access token.
-    $signed_request = $this->getSignedRequest();
-    if ($signed_request) {
-      // apps.etalio.com hands the access_token in the signed_request
-      if (array_key_exists('oauth_token', $signed_request)) {
-        $access_token = $signed_request['oauth_token'];
-        $this->setPersistentData('access_token', $access_token);
-        return $access_token;
-      }
-
-      // the JS SDK puts a code in with the redirect_uri of ''
-      if (array_key_exists('code', $signed_request)) {
-        $code = $signed_request['code'];
-        if ($code && $code == $this->getPersistentData('code')) {
-          // short-circuit if the code we have is the same as the one presented
-          return $this->getPersistentData('access_token');
-        }
-
-        $access_token = $this->getAccessTokenFromCode($code, '');
-        if ($access_token) {
-          $this->setPersistentData('code', $code);
-          $this->setPersistentData('access_token', $access_token);
-          return $access_token;
-        }
-      }
-
-      // signed request states there's no access token, so anything
-      // stored should be cleared.
-      $this->clearAllPersistentData();
-      return false; // respect the signed request's data, even
-                    // if there's an authorization code or something else
-    }
-
     $code = $this->getCode();
     if ($code && $code != $this->getPersistentData('code')) {
       $access_token = $this->getAccessTokenFromCode($code);
@@ -477,25 +377,6 @@ abstract class BaseEtalio
     // code, etc.) was present to shadow it (or we saw a code in $_REQUEST,
     // but it's the same as what's in the persistent store)
     return $this->getPersistentData('access_token');
-  }
-
-  /**
-   * Retrieve the signed request, either from a request parameter or,
-   * if not present, from a cookie.
-   *
-   * @return string the signed request, if available, or null otherwise.
-   */
-  public function getSignedRequest() {
-    if (!$this->signedRequest) {
-      if (!empty($_REQUEST['signed_request'])) {
-        $this->signedRequest = $this->parseSignedRequest(
-          $_REQUEST['signed_request']);
-      } else if (!empty($_COOKIE[$this->getSignedRequestCookieName()])) {
-        $this->signedRequest = $this->parseSignedRequest(
-          $_COOKIE[$this->getSignedRequestCookieName()]);
-      }
-    }
-    return $this->signedRequest;
   }
 
   /**
@@ -522,26 +403,6 @@ abstract class BaseEtalio
    *                 or 0 if no such user exists.
    */
   protected function getUserFromAvailableData() {
-    // if a signed request is supplied, then it solely determines
-    // who the user is.
-    $signed_request = $this->getSignedRequest();
-    if ($signed_request) {
-      if (array_key_exists('user_id', $signed_request)) {
-        $user = $signed_request['user_id'];
-
-        if($user != $this->getPersistentData('user_id')){
-          $this->clearAllPersistentData();
-        }
-
-        $this->setPersistentData('user_id', $signed_request['user_id']);
-        return $user;
-      }
-
-      // if the signed request didn't present a user id, then invalidate
-      // all entries in any persistent store.
-      $this->clearAllPersistentData();
-      return 0;
-    }
 
     $user = $this->getPersistentData('user_id', $default = 0);
     $persisted_access_token = $this->getPersistentData('access_token');
@@ -586,14 +447,13 @@ abstract class BaseEtalio
     }
 
     return $this->getUrl(
-      'www',
-      'dialog/oauth',
+      'profile',
       array_merge(
         array(
           'client_id' => $this->getAppId(),
           'redirect_uri' => $currentUrl, // possibly overwritten
           'state' => $this->state,
-          'sdk' => 'php-sdk-'.self::VERSION
+          'sdk' => 'php-sdk-'.self::VERSION,
         ),
         $params
       ));
@@ -611,7 +471,6 @@ abstract class BaseEtalio
   public function getLogoutUrl($params=array()) {
     return $this->getUrl(
       'www',
-      'logout.php',
       array_merge(array(
         'next' => $this->getCurrentUrl(),
         'access_token' => $this->getUserAccessToken(),
@@ -644,21 +503,8 @@ abstract class BaseEtalio
     if (is_array($args[0])) {
       return $this->_restserver($args[0]);
     } else {
-      return call_user_func_array(array($this, '_graph'), $args);
+      return call_user_func_array(array($this, 'profile'), $args);
     }
-  }
-
-  /**
-   * Constructs and returns the name of the cookie that
-   * potentially houses the signed request for the app user.
-   * The cookie is not set by the BaseEtalio class, but
-   * it may be set by the JavaScript SDK.
-   *
-   * @return string the name of the cookie that would house
-   *         the signed request value.
-   */
-  protected function getSignedRequestCookieName() {
-    return 'fbsr_'.$this->getAppId();
   }
 
   /**
@@ -935,7 +781,7 @@ abstract class BaseEtalio
       $ch = curl_init();
     }
 
-    $opts = self::$CURL_OPTS;
+    $opts = self::$curlOpts;
     if ($this->getFileUploadSupport()) {
       $opts[CURLOPT_POSTFIELDS] = $params;
     } else {
@@ -978,7 +824,7 @@ abstract class BaseEtalio
           if (strlen(@inet_pton($matches[1])) === 16) {
             self::errorLog('Invalid IPv6 configuration on server, '.
                            'Please disable or get native IPv6 on your server.');
-            self::$CURL_OPTS[CURLOPT_IPRESOLVE] = CURL_IPRESOLVE_V4;
+            self::$curlOpts[CURLOPT_IPRESOLVE] = CURL_IPRESOLVE_V4;
             curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
             $result = curl_exec($ch);
           }
@@ -1001,54 +847,24 @@ abstract class BaseEtalio
   }
 
   /**
-   * Parses a signed_request and validates the signature.
-   *
-   * @param string $signed_request A signed token
-   * @return array The payload inside it or null if the sig is wrong
-   */
-  protected function parseSignedRequest($signed_request) {
-    list($encoded_sig, $payload) = explode('.', $signed_request, 2);
-
-    // decode the data
-    $sig = self::base64UrlDecode($encoded_sig);
-    $data = json_decode(self::base64UrlDecode($payload), true);
-
-    if (strtoupper($data['algorithm']) !== self::SIGNED_REQUEST_ALGORITHM) {
-      self::errorLog(
-        'Unknown algorithm. Expected ' . self::SIGNED_REQUEST_ALGORITHM);
-      return null;
-    }
-
-    // check sig
-    $expected_sig = hash_hmac('sha256', $payload,
-                              $this->getAppSecret(), $raw = true);
-    if ($sig !== $expected_sig) {
-      self::errorLog('Bad Signed JSON signature!');
-      return null;
-    }
-
-    return $data;
-  }
-
-  /**
    * Makes a signed_request blob using the given data.
    *
    * @param array The data array.
    * @return string The signed request.
    */
-  protected function makeSignedRequest($data) {
-    if (!is_array($data)) {
-      throw new InvalidArgumentException(
-        'makeSignedRequest expects an array. Got: ' . print_r($data, true));
-    }
-    $data['algorithm'] = self::SIGNED_REQUEST_ALGORITHM;
-    $data['issued_at'] = time();
-    $json = json_encode($data);
-    $b64 = self::base64UrlEncode($json);
-    $raw_sig = hash_hmac('sha256', $b64, $this->getAppSecret(), $raw = true);
-    $sig = self::base64UrlEncode($raw_sig);
-    return $sig.'.'.$b64;
-  }
+  // protected function makeSignedRequest($data) {
+  //   if (!is_array($data)) {
+  //     throw new InvalidArgumentException(
+  //       'makeSignedRequest expects an array. Got: ' . print_r($data, true));
+  //   }
+  //   $data['algorithm'] = self::SIGNED_REQUEST_ALGORITHM;
+  //   $data['issued_at'] = time();
+  //   $json = json_encode($data);
+  //   $b64 = self::base64UrlEncode($json);
+  //   $raw_sig = hash_hmac('sha256', $b64, $this->getAppSecret(), $raw = true);
+  //   $sig = self::base64UrlEncode($raw_sig);
+  //   return $sig.'.'.$b64;
+  // }
 
   /**
    * Build the URL for api given parameters.
@@ -1056,76 +872,76 @@ abstract class BaseEtalio
    * @param $method String the method name.
    * @return string The URL for the given parameters
    */
-  protected function getApiUrl($method) {
-    static $READ_ONLY_CALLS =
-      array('admin.getallocation' => 1,
-            'admin.getappproperties' => 1,
-            'admin.getbannedusers' => 1,
-            'admin.getlivestreamvialink' => 1,
-            'admin.getmetrics' => 1,
-            'admin.getrestrictioninfo' => 1,
-            'application.getpublicinfo' => 1,
-            'auth.getapppublickey' => 1,
-            'auth.getsession' => 1,
-            'auth.getsignedpublicsessiondata' => 1,
-            'comments.get' => 1,
-            'connect.getunconnectedfriendscount' => 1,
-            'dashboard.getactivity' => 1,
-            'dashboard.getcount' => 1,
-            'dashboard.getglobalnews' => 1,
-            'dashboard.getnews' => 1,
-            'dashboard.multigetcount' => 1,
-            'dashboard.multigetnews' => 1,
-            'data.getcookies' => 1,
-            'events.get' => 1,
-            'events.getmembers' => 1,
-            'fbml.getcustomtags' => 1,
-            'feed.getappfriendstories' => 1,
-            'feed.getregisteredtemplatebundlebyid' => 1,
-            'feed.getregisteredtemplatebundles' => 1,
-            'fql.multiquery' => 1,
-            'fql.query' => 1,
-            'friends.arefriends' => 1,
-            'friends.get' => 1,
-            'friends.getappusers' => 1,
-            'friends.getlists' => 1,
-            'friends.getmutualfriends' => 1,
-            'gifts.get' => 1,
-            'groups.get' => 1,
-            'groups.getmembers' => 1,
-            'intl.gettranslations' => 1,
-            'links.get' => 1,
-            'notes.get' => 1,
-            'notifications.get' => 1,
-            'pages.getinfo' => 1,
-            'pages.isadmin' => 1,
-            'pages.isappadded' => 1,
-            'pages.isfan' => 1,
-            'permissions.checkavailableapiaccess' => 1,
-            'permissions.checkgrantedapiaccess' => 1,
-            'photos.get' => 1,
-            'photos.getalbums' => 1,
-            'photos.gettags' => 1,
-            'profile.getinfo' => 1,
-            'profile.getinfooptions' => 1,
-            'stream.get' => 1,
-            'stream.getcomments' => 1,
-            'stream.getfilters' => 1,
-            'users.getinfo' => 1,
-            'users.getloggedinuser' => 1,
-            'users.getstandardinfo' => 1,
-            'users.hasapppermission' => 1,
-            'users.isappuser' => 1,
-            'users.isverified' => 1,
-            'video.getuploadlimits' => 1);
-    $name = 'api';
-    if (isset($READ_ONLY_CALLS[strtolower($method)])) {
-      $name = 'api_read';
-    } else if (strtolower($method) == 'video.upload') {
-      $name = 'api_video';
-    }
-    return self::getUrl($name, 'restserver.php');
-  }
+  // protected function getApiUrl($method) {
+  //   static $READ_ONLY_CALLS =
+  //     array('admin.getallocation' => 1,
+  //           'admin.getappproperties' => 1,
+  //           'admin.getbannedusers' => 1,
+  //           'admin.getlivestreamvialink' => 1,
+  //           'admin.getmetrics' => 1,
+  //           'admin.getrestrictioninfo' => 1,
+  //           'application.getpublicinfo' => 1,
+  //           'auth.getapppublickey' => 1,
+  //           'auth.getsession' => 1,
+  //           'auth.getsignedpublicsessiondata' => 1,
+  //           'comments.get' => 1,
+  //           'connect.getunconnectedfriendscount' => 1,
+  //           'dashboard.getactivity' => 1,
+  //           'dashboard.getcount' => 1,
+  //           'dashboard.getglobalnews' => 1,
+  //           'dashboard.getnews' => 1,
+  //           'dashboard.multigetcount' => 1,
+  //           'dashboard.multigetnews' => 1,
+  //           'data.getcookies' => 1,
+  //           'events.get' => 1,
+  //           'events.getmembers' => 1,
+  //           'fbml.getcustomtags' => 1,
+  //           'feed.getappfriendstories' => 1,
+  //           'feed.getregisteredtemplatebundlebyid' => 1,
+  //           'feed.getregisteredtemplatebundles' => 1,
+  //           'fql.multiquery' => 1,
+  //           'fql.query' => 1,
+  //           'friends.arefriends' => 1,
+  //           'friends.get' => 1,
+  //           'friends.getappusers' => 1,
+  //           'friends.getlists' => 1,
+  //           'friends.getmutualfriends' => 1,
+  //           'gifts.get' => 1,
+  //           'groups.get' => 1,
+  //           'groups.getmembers' => 1,
+  //           'intl.gettranslations' => 1,
+  //           'links.get' => 1,
+  //           'notes.get' => 1,
+  //           'notifications.get' => 1,
+  //           'pages.getinfo' => 1,
+  //           'pages.isadmin' => 1,
+  //           'pages.isappadded' => 1,
+  //           'pages.isfan' => 1,
+  //           'permissions.checkavailableapiaccess' => 1,
+  //           'permissions.checkgrantedapiaccess' => 1,
+  //           'photos.get' => 1,
+  //           'photos.getalbums' => 1,
+  //           'photos.gettags' => 1,
+  //           'profile.getinfo' => 1,
+  //           'profile.getinfooptions' => 1,
+  //           'stream.get' => 1,
+  //           'stream.getcomments' => 1,
+  //           'stream.getfilters' => 1,
+  //           'users.getinfo' => 1,
+  //           'users.getloggedinuser' => 1,
+  //           'users.getstandardinfo' => 1,
+  //           'users.hasapppermission' => 1,
+  //           'users.isappuser' => 1,
+  //           'users.isverified' => 1,
+  //           'video.getuploadlimits' => 1);
+  //   $name = 'api';
+  //   if (isset($READ_ONLY_CALLS[strtolower($method)])) {
+  //     $name = 'api_read';
+  //   } else if (strtolower($method) == 'video.upload') {
+  //     $name = 'api_video';
+  //   }
+  //   return self::getUrl($name, 'restserver.php');
+  // }
 
   /**
    * Build the URL for given domain alias, path and parameters.
@@ -1136,46 +952,20 @@ abstract class BaseEtalio
    *
    * @return string The URL for the given parameters
    */
-  protected function getUrl($name, $path='', $params=array()) {
-    $url = self::$DOMAIN_MAP[$name];
-    if ($path) {
-      if ($path[0] === '/') {
-        $path = substr($path, 1);
-      }
-      $url .= $path;
-    }
+  protected function getUrl($name, $params=array()) {
+    $url = $this->domainMap[$name];
     if ($params) {
       $url .= '?' . http_build_query($params, null, '&');
     }
-
     return $url;
   }
 
   protected function getHttpHost() {
-    if ($this->trustForwarded && isset($_SERVER['HTTP_X_FORWARDED_HOST'])) {
-      return $_SERVER['HTTP_X_FORWARDED_HOST'];
-    }
     return $_SERVER['HTTP_HOST'];
   }
 
   protected function getHttpProtocol() {
-    if ($this->trustForwarded && isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
-      if ($_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
-        return 'https';
-      }
-      return 'http';
-    }
-    /*apache + variants specific way of checking for https*/
-    if (isset($_SERVER['HTTPS']) &&
-        ($_SERVER['HTTPS'] === 'on' || $_SERVER['HTTPS'] == 1)) {
-      return 'https';
-    }
-    /*nginx way of checking for https*/
-    if (isset($_SERVER['SERVER_PORT']) &&
-        ($_SERVER['SERVER_PORT'] === '443')) {
-      return 'https';
-    }
-    return 'http';
+    return 'https';
   }
 
   /**
@@ -1193,13 +983,13 @@ abstract class BaseEtalio
   }
 
   /**
-   * Returns the Current URL, stripping it of known FB parameters that should
+   * Returns the Current URL, stripping it of known ETALIO parameters that should
    * not persist.
    *
    * @return string The current URL
    */
   protected function getCurrentUrl() {
-    $protocol = $this->getHttpProtocol() . '://';
+    $protocol = 'https://';
     $host = $this->getHttpHost();
     $currentUrl = $protocol.$host.$_SERVER['REQUEST_URI'];
     $parts = parse_url($currentUrl);
@@ -1222,9 +1012,7 @@ abstract class BaseEtalio
 
     // use port if non default
     $port =
-      isset($parts['port']) &&
-      (($protocol === 'http://' && $parts['port'] !== 80) ||
-       ($protocol === 'https://' && $parts['port'] !== 443))
+      isset($parts['port']) && ($protocol === 'https://' && $parts['port'] !== 443)
       ? ':' . $parts['port'] : '';
 
     // rebuild
@@ -1333,7 +1121,6 @@ abstract class BaseEtalio
    */
   public function destroySession() {
     $this->accessToken = null;
-    $this->signedRequest = null;
     $this->user = null;
     $this->clearAllPersistentData();
 

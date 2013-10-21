@@ -9,10 +9,6 @@
         {
             "name": "Etalio",
             "homepage": "https://github.com/Etalio/etalio-php-sdk/contributors"
-        },
-        {
-            "name": "Facebook",
-            "homepage": "https://github.com/facebook/facebook-php-sdk/contributors"
         }
     ],
     "require": {

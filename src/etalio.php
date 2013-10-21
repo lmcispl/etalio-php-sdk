@@ -1,20 +1,4 @@
 <?php
-/**
- * Copyright 2011 Etalio, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License. You may obtain
- * a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
- */
-
 require_once "base_etalio.php";
 
 /**
@@ -23,11 +7,11 @@ require_once "base_etalio.php";
  */
 class Etalio extends BaseEtalio
 {
-  const FBSS_COOKIE_NAME = 'fbss';
+  const ETALIOSS_COOKIE_NAME = 'etalioss';
 
   // We can set this to a high number because the main session
   // expiration will trump this.
-  const FBSS_COOKIE_EXPIRE = 31556926; // 1 year
+  const ETALIOSS_COOKIE_EXPIRE = 31556926; // 1 year
 
   // Stores the shared session ID if one is set.
   protected $sharedSessionID;
@@ -49,59 +33,59 @@ class Etalio extends BaseEtalio
       session_start();
     }
     parent::__construct($config);
-    if (!empty($config['sharedSession'])) {
-      $this->initSharedSession();
+    // if (!empty($config['sharedSession'])) {
+    //   $this->initSharedSession();
 
-      // re-load the persisted state, since parent
-      // attempted to read out of non-shared cookie
-      $state = $this->getPersistentData('state');
-      if (!empty($state)) {
-        $this->state = $state;
-      } else {
-        $this->state = null;
-      }
+    //   // re-load the persisted state, since parent
+    //   // attempted to read out of non-shared cookie
+    //   $state = $this->getPersistentData('state');
+    //   if (!empty($state)) {
+    //     $this->state = $state;
+    //   } else {
+    //     $this->state = null;
+    //   }
 
-    }
+    // }
   }
 
   protected static $kSupportedKeys =
     array('state', 'code', 'access_token', 'user_id');
 
-  protected function initSharedSession() {
-    $cookie_name = $this->getSharedSessionCookieName();
-    if (isset($_COOKIE[$cookie_name])) {
-      $data = $this->parseSignedRequest($_COOKIE[$cookie_name]);
-      if ($data && !empty($data['domain']) &&
-          self::isAllowedDomain($this->getHttpHost(), $data['domain'])) {
-        // good case
-        $this->sharedSessionID = $data['id'];
-        return;
-      }
-      // ignoring potentially unreachable data
-    }
-    // evil/corrupt/missing case
-    $base_domain = $this->getBaseDomain();
-    $this->sharedSessionID = md5(uniqid(mt_rand(), true));
-    $cookie_value = $this->makeSignedRequest(
-      array(
-        'domain' => $base_domain,
-        'id' => $this->sharedSessionID,
-      )
-    );
-    $_COOKIE[$cookie_name] = $cookie_value;
-    if (!headers_sent()) {
-      $expire = time() + self::FBSS_COOKIE_EXPIRE;
-      setcookie($cookie_name, $cookie_value, $expire, '/', '.'.$base_domain);
-    } else {
-      // @codeCoverageIgnoreStart
-      self::errorLog(
-        'Shared session ID cookie could not be set! You must ensure you '.
-        'create the Etalio instance before headers have been sent. This '.
-        'will cause authentication issues after the first request.'
-      );
-      // @codeCoverageIgnoreEnd
-    }
-  }
+  // protected function initSharedSession() {
+  //   $cookie_name = $this->getSharedSessionCookieName();
+  //   if (isset($_COOKIE[$cookie_name])) {
+  //     $data = $this->parseSignedRequest($_COOKIE[$cookie_name]);
+  //     if ($data && !empty($data['domain']) &&
+  //         self::isAllowedDomain($this->getHttpHost(), $data['domain'])) {
+  //       // good case
+  //       $this->sharedSessionID = $data['id'];
+  //       return;
+  //     }
+  //     // ignoring potentially unreachable data
+  //   }
+  //   // evil/corrupt/missing case
+  //   $base_domain = $this->getBaseDomain();
+  //   $this->sharedSessionID = md5(uniqid(mt_rand(), true));
+  //   $cookie_value = $this->makeSignedRequest(
+  //     array(
+  //       'domain' => $base_domain,
+  //       'id' => $this->sharedSessionID,
+  //     )
+  //   );
+  //   $_COOKIE[$cookie_name] = $cookie_value;
+  //   if (!headers_sent()) {
+  //     $expire = time() + self::ETALIOSS_COOKIE_EXPIRE;
+  //     setcookie($cookie_name, $cookie_value, $expire, '/', '.'.$base_domain);
+  //   } else {
+  //     // @codeCoverageIgnoreStart
+  //     self::errorLog(
+  //       'Shared session ID cookie could not be set! You must ensure you '.
+  //       'create the Etalio instance before headers have been sent. This '.
+  //       'will cause authentication issues after the first request.'
+  //     );
+  //     // @codeCoverageIgnoreEnd
+  //   }
+  // }
 
   /**
    * Provides the implementations of the inherited abstract
@@ -159,11 +143,11 @@ class Etalio extends BaseEtalio
   }
 
   protected function getSharedSessionCookieName() {
-    return self::FBSS_COOKIE_NAME . '_' . $this->getAppId();
+    return self::ETALIOSS_COOKIE_NAME . '_' . $this->getAppId();
   }
 
   protected function constructSessionVariableName($key) {
-    $parts = array('fb', $this->getAppId(), $key);
+    $parts = array('etalio', $this->getAppId(), $key);
     if ($this->sharedSessionID) {
       array_unshift($parts, $this->sharedSessionID);
     }
