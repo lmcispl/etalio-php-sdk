@@ -11,27 +11,6 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
 
   private static $kExpiredAccessToken = 'AAABrFmeaJjgBAIshbq5ZBqZBICsmveZCZBi6O4w9HSTkFI73VMtmkL9jLuWsZBZC9QMHvJFtSulZAqonZBRIByzGooCZC8DWr0t1M4BL9FARdQwPWPnIqCiFQ';
 
-  private static function kValidSignedRequest($id = self::TEST_USER, $oauth_token = null) {
-    $etalio = new ETALIOPublic(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-    ));
-    return $etalio->publicMakeSignedRequest(
-      array(
-        'user_id' => $id,
-        'oauth_token' => $oauth_token
-      )
-    );
-  }
-
-  private static function kNonTosedSignedRequest() {
-    $etalio = new ETALIOPublic(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-    ));
-    return $etalio->publicMakeSignedRequest(array());
-  }
-
   private static function kSignedRequestWithEmptyValue() {
     return '';
   }
@@ -159,7 +138,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     $_SERVER['REQUEST_URI'] = '/unit-tests.php?one=one&two=two&three=three';
     $current_url = $etalio->publicGetCurrentUrl();
     $this->assertEquals(
-      'http://www.test.com/unit-tests.php?one=one&two=two&three=three',
+      'https://www.test.com/unit-tests.php?one=one&two=two&three=three',
       $current_url,
       'getCurrentUrl function is changing the current URL');
 
@@ -170,7 +149,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     $_SERVER['REQUEST_URI'] = '/unit-tests.php?one=&two=&three=';
     $current_url = $etalio->publicGetCurrentUrl();
     $this->assertEquals(
-      'http://www.test.com/unit-tests.php?one=&two=&three=',
+      'https://www.test.com/unit-tests.php?one=&two=&three=',
       $current_url,
       'getCurrentUrl function is changing the current URL');
 
@@ -179,7 +158,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     $_SERVER['REQUEST_URI'] = '/unit-tests.php?one&two&three';
     $current_url = $etalio->publicGetCurrentUrl();
     $this->assertEquals(
-      'http://www.test.com/unit-tests.php?one&two&three',
+      'https://www.test.com/unit-tests.php?one&two&three',
       $current_url,
       'getCurrentUrl function is changing the current URL');
   }
@@ -195,11 +174,11 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     $_SERVER['REQUEST_URI'] = '/unit-tests.php';
     $login_url = parse_url($etalio->getLoginUrl());
     $this->assertEquals($login_url['scheme'], 'https');
-    $this->assertEquals($login_url['host'], 'www.etalio.com');
-    $this->assertEquals($login_url['path'], '/dialog/oauth');
+    $this->assertEquals($login_url['host'], 'api-etalio.3fs.si');
+    $this->assertEquals($login_url['path'], '/v0.0.1/user');
     $expected_login_params =
       array('client_id' => self::APP_ID,
-            'redirect_uri' => 'http://www.test.com/unit-tests.php');
+            'redirect_uri' => 'https://www.test.com/unit-tests.php');
 
     $query_map = array();
     parse_str($login_url['query'], $query_map);
@@ -222,12 +201,12 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
                           'nonsense' => 'nonsense');
     $login_url = parse_url($etalio->getLoginUrl($extra_params));
     $this->assertEquals($login_url['scheme'], 'https');
-    $this->assertEquals($login_url['host'], 'www.etalio.com');
-    $this->assertEquals($login_url['path'], '/dialog/oauth');
+    $this->assertEquals($login_url['host'], 'api-etalio.3fs.si');
+    $this->assertEquals($login_url['path'], '/v0.0.1/user');
     $expected_login_params =
       array_merge(
         array('client_id' => self::APP_ID,
-              'redirect_uri' => 'http://www.test.com/unit-tests.php'),
+              'redirect_uri' => 'https://www.test.com/unit-tests.php'),
         $extra_params);
     $query_map = array();
     parse_str($login_url['query'], $query_map);
@@ -251,8 +230,8 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
                           'nonsense' => 'nonsense');
     $login_url = parse_url($etalio->getLoginUrl($extra_params));
     $this->assertEquals($login_url['scheme'], 'https');
-    $this->assertEquals($login_url['host'], 'www.etalio.com');
-    $this->assertEquals($login_url['path'], '/dialog/oauth');
+    $this->assertEquals($login_url['host'], 'api-etalio.3fs.si');
+    $this->assertEquals($login_url['path'], '/v0.0.1/user');
     // expect api to flatten array params to comma separated list
     // should do the same here before asserting to make sure API is behaving
     // correctly;
@@ -260,7 +239,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     $expected_login_params =
       array_merge(
         array('client_id' => self::APP_ID,
-              'redirect_uri' => 'http://www.test.com/unit-tests.php'),
+              'redirect_uri' => 'https://www.test.com/unit-tests.php'),
         $extra_params);
     $query_map = array();
     parse_str($login_url['query'], $query_map);
@@ -327,89 +306,26 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
             'Persisted CSRF state token not loaded correctly');
   }
 
-  public function testPersistentCSRFStateWithSharedSession()
-  {
-    $_SERVER['HTTP_HOST'] = 'fbrell.com';
-    $etalio = new ETALIOCode(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-      'sharedSession' => true,
-    ));
-    $etalio->setCSRFStateToken();
-    $code = $etalio->getCSRFStateToken();
+  // public function testPersistentCSRFStateWithSharedSession()
+  // {
+  //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
+  //   $etalio = new ETALIOCode(array(
+  //     'appId'  => self::APP_ID,
+  //     'secret' => self::SECRET,
+  //     'sharedSession' => true,
+  //   ));
+  //   $etalio->setCSRFStateToken();
+  //   $code = $etalio->getCSRFStateToken();
 
-    $etalio = new ETALIOCode(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-      'sharedSession' => true,
-    ));
+  //   $etalio = new ETALIOCode(array(
+  //     'appId'  => self::APP_ID,
+  //     'secret' => self::SECRET,
+  //     'sharedSession' => true,
+  //   ));
 
-    $this->assertEquals($code, $etalio->publicGetState(),
-            'Persisted CSRF state token not loaded correctly with shared session');
-  }
-
-  public function testGetUserFromSignedRequest() {
-    $etalio = new TransientEtalio(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-    ));
-
-    $_REQUEST['signed_request'] = self::kValidSignedRequest();
-    $this->assertEquals('499834690', $etalio->getUser(),
-                        'Failed to get user ID from a valid signed request.');
-  }
-
-  public function testSignedRequestRewrite(){
-    $etalio = new ETALIORewrite(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-    ));
-
-    $_REQUEST['signed_request'] = self::kValidSignedRequest(self::TEST_USER, 'Hello sweetie');
-
-    $this->assertEquals(self::TEST_USER, $etalio->getUser(),
-                        'Failed to get user ID from a valid signed request.');
-
-    $this->assertEquals('Hello sweetie', $etalio->getAccessToken(),
-                        'Failed to get access token from signed request');
-
-    $etalio->uncache();
-
-    $_REQUEST['signed_request'] = self::kValidSignedRequest(self::TEST_USER_2, 'spoilers');
-
-    $this->assertEquals(self::TEST_USER_2, $etalio->getUser(),
-                        'Failed to get user ID from a valid signed request.');
-
-    $_REQUEST['signed_request'] = null;
-    $etalio ->uncacheSignedRequest();
-
-    $this->assertNotEquals('Hello sweetie', $etalio->getAccessToken(),
-                        'Failed to clear access token');
-  }
-
-  public function testGetSignedRequestFromCookie() {
-    $etalio = new ETALIOPublicCookie(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-    ));
-
-    $_COOKIE[$etalio->publicGetSignedRequestCookieName()] =
-      self::kValidSignedRequest();
-    $this->assertNotNull($etalio->publicGetSignedRequest());
-    $this->assertEquals('499834690', $etalio->getUser(),
-                        'Failed to get user ID from a valid signed request.');
-  }
-
-  public function testGetSignedRequestWithIncorrectSignature() {
-    $etalio = new ETALIOPublicCookie(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-    ));
-
-    $_COOKIE[$etalio->publicGetSignedRequestCookieName()] =
-      self::kSignedRequestWithBogusSignature();
-    $this->assertNull($etalio->publicGetSignedRequest());
-  }
+  //   $this->assertEquals($code, $etalio->publicGetState(),
+  //           'Persisted CSRF state token not loaded correctly with shared session');
+  // }
 
   public function testNonUserAccessToken() {
     $etalio = new ETALIOAccessToken(array(
@@ -425,44 +341,45 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   }
 
   public function testMissingMetadataCookie() {
-    $fb = new ETALIOPublicCookie(array(
+    $etalio = new ETALIOPublicCookie(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
     ));
-    $this->assertEmpty($fb->publicGetMetadataCookie());
+    $this->assertEmpty($etalio->publicGetMetadataCookie());
   }
 
   public function testEmptyMetadataCookie() {
-    $fb = new ETALIOPublicCookie(array(
+    $etalio = new ETALIOPublicCookie(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
     ));
-    $_COOKIE[$fb->publicGetMetadataCookieName()] = '';
-    $this->assertEmpty($fb->publicGetMetadataCookie());
+    $_COOKIE[$etalio->publicGetMetadataCookieName()] = '';
+    $this->assertEmpty($etalio->publicGetMetadataCookie());
   }
 
   public function testMetadataCookie() {
-    $fb = new ETALIOPublicCookie(array(
+    $etalio = new ETALIOPublicCookie(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
     ));
     $key = 'foo';
     $val = '42';
-    $_COOKIE[$fb->publicGetMetadataCookieName()] = "$key=$val";
-    $this->assertEquals(array($key => $val), $fb->publicGetMetadataCookie());
+    $_COOKIE[$etalio->publicGetMetadataCookieName()] = "$key=$val";
+    $this->assertEquals(array($key => $val), $etalio->publicGetMetadataCookie());
   }
 
   public function testQuotedMetadataCookie() {
-    $fb = new ETALIOPublicCookie(array(
+    $etalio = new ETALIOPublicCookie(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
     ));
     $key = 'foo';
     $val = '42';
-    $_COOKIE[$fb->publicGetMetadataCookieName()] = "\"$key=$val\"";
-    $this->assertEquals(array($key => $val), $fb->publicGetMetadataCookie());
+    $_COOKIE[$etalio->publicGetMetadataCookieName()] = "\"$key=$val\"";
+    $this->assertEquals(array($key => $val), $etalio->publicGetMetadataCookie());
   }
 
+/** Test removed since apis are completely different /Martin Kurtsson **/
   // public function testAPIForLoggedOutUsers() {
   //   $etalio = new TransientEtalio(array(
   //     'appId'  => self::APP_ID,
@@ -478,6 +395,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //                       'Expect the name back.');
   // }
 
+/** Test removed since apis are completely different /Martin Kurtsson **/
   // public function testAPIWithBogusAccessToken() {
   //   $etalio = new TransientEtalio(array(
   //     'appId'  => self::APP_ID,
@@ -505,6 +423,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //   }
   // }
 
+/** Test removed since apis are completely different /Martin Kurtsson **/
   // public function testAPIGraphPublicData() {
   //   $etalio = new TransientEtalio(array(
   //     'appId'  => self::APP_ID,
@@ -516,6 +435,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //     $response['id'], '214707', 'should get expected id.');
   // }
 
+/** Test removed since apis are completely different /Martin Kurtsson **/
   // public function testGraphAPIWithBogusAccessToken() {
   //   $etalio = new TransientEtalio(array(
   //     'appId'  => self::APP_ID,
@@ -534,6 +454,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //   }
   // }
 
+/** Test removed since apis are completely different /Martin Kurtsson **/
   // public function testGraphAPIWithExpiredAccessToken() {
   //   $etalio = new TransientEtalio(array(
   //     'appId'  => self::APP_ID,
@@ -552,6 +473,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //   }
   // }
 
+/** Test removed since apis are completely different /Martin Kurtsson **/
   // public function testGraphAPIOAuthSpecError() {
   //   $etalio = new TransientEtalio(array(
   //     'appId'  => self::MIGRATED_APP_ID,
@@ -572,6 +494,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //   }
   // }
 
+/** Test removed since apis are completely different /Martin Kurtsson **/
   // public function testGraphAPIMethodOAuthSpecError() {
   //   $etalio = new TransientEtalio(array(
   //     'appId'  => self::MIGRATED_APP_ID,
@@ -587,6 +510,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //   }
   // }
 
+/** Test removed since apis are completely different /Martin Kurtsson **/
   // public function testCurlFailure() {
   //   $etalio = new TransientEtalio(array(
   //     'appId'  => self::APP_ID,
@@ -601,12 +525,13 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //   $exception = null;
   //   try {
   //     // we dont expect etalio will ever return in 1ms
-  //     Etalio::$CURL_OPTS[CURLOPT_TIMEOUT_MS] = 50;
+  //     $etalio->getCurlOpts()[CURLOPT_TIMEOUT_MS] = 50;
+  //     // Etalio::$CURL_OPTS[CURLOPT_TIMEOUT_MS] = 50;
   //     $etalio->api('/naitik');
   //   } catch(EtalioApiException $e) {
   //     $exception = $e;
   //   }
-  //   unset(Etalio::$CURL_OPTS[CURLOPT_TIMEOUT_MS]);
+  //   // unset(Etalio::$CURL_OPTS[CURLOPT_TIMEOUT_MS]);
   //   if (!$exception) {
   //     $this->fail('no exception was thrown on timeout.');
   //   }
@@ -618,6 +543,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //   $this->assertEquals('CurlException', $exception->getType(), 'expect type');
   // }
 
+/** Test removed since apis are completely different /Martin Kurtsson **/
   // public function testGraphAPIWithOnlyParams() {
   //   $etalio = new TransientEtalio(array(
   //     'appId'  => self::APP_ID,
@@ -644,169 +570,168 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //                      'available with a valid access token.');
   // }
 
-  // public function testLoginURLDefaults() {
-  //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
-  //   $_SERVER['REQUEST_URI'] = '/examples';
-  //   $etalio = new TransientEtalio(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET,
-  //   ));
-  //   $encodedUrl = rawurlencode('http://fbrell.com/examples');
-  //   $this->assertNotNull(strpos($etalio->getLoginUrl(), $encodedUrl),
-  //                        'Expect the current url to exist.');
-  // }
+  public function testLoginURLDefaults() {
+    $_SERVER['HTTP_HOST'] = 'fbrell.com';
+    $_SERVER['REQUEST_URI'] = '/examples';
+    $etalio = new TransientEtalio(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET,
+    ));
+    $encodedUrl = rawurlencode('http://fbrell.com/examples');
+    $this->assertNotNull(strpos($etalio->getLoginUrl(), $encodedUrl),
+                         'Expect the current url to exist.');
+  }
 
-  // public function testLoginURLDefaultsDropStateQueryParam() {
-  //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
-  //   $_SERVER['REQUEST_URI'] = '/examples?state=xx42xx';
-  //   $etalio = new TransientEtalio(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET,
-  //   ));
-  //   $expectEncodedUrl = rawurlencode('http://fbrell.com/examples');
-  //   $this->assertTrue(strpos($etalio->getLoginUrl(), $expectEncodedUrl) > -1,
-  //                     'Expect the current url to exist.');
-  //   $this->assertFalse(strpos($etalio->getLoginUrl(), 'xx42xx'),
-  //                      'Expect the session param to be dropped.');
-  // }
+  public function testLoginURLDefaultsDropStateQueryParam() {
+    $_SERVER['HTTP_HOST'] = 'fbrell.com';
+    $_SERVER['REQUEST_URI'] = '/examples?state=xx42xx';
+    $etalio = new TransientEtalio(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET,
+    ));
+    $expectEncodedUrl = rawurlencode('https://fbrell.com/examples');
+    $this->assertTrue(strpos($etalio->getLoginUrl(), $expectEncodedUrl) > -1,
+                      'Expect the current url to exist.');
+    $this->assertFalse(strpos($etalio->getLoginUrl(), 'xx42xx'),
+                       'Expect the session param to be dropped.');
+  }
 
-  // public function testLoginURLDefaultsDropCodeQueryParam() {
-  //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
-  //   $_SERVER['REQUEST_URI'] = '/examples?code=xx42xx';
-  //   $etalio = new TransientEtalio(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET,
-  //   ));
-  //   $expectEncodedUrl = rawurlencode('http://fbrell.com/examples');
-  //   $this->assertTrue(strpos($etalio->getLoginUrl(), $expectEncodedUrl) > -1,
-  //                     'Expect the current url to exist.');
-  //   $this->assertFalse(strpos($etalio->getLoginUrl(), 'xx42xx'),
-  //                      'Expect the session param to be dropped.');
-  // }
+  public function testLoginURLDefaultsDropCodeQueryParam() {
+    $_SERVER['HTTP_HOST'] = 'fbrell.com';
+    $_SERVER['REQUEST_URI'] = '/examples?code=xx42xx';
+    $etalio = new TransientEtalio(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET,
+    ));
+    $expectEncodedUrl = rawurlencode('https://fbrell.com/examples');
+    $this->assertTrue(strpos($etalio->getLoginUrl(), $expectEncodedUrl) > -1,
+                      'Expect the current url to exist.');
+    $this->assertFalse(strpos($etalio->getLoginUrl(), 'xx42xx'),
+                       'Expect the session param to be dropped.');
+  }
 
   // public function testLoginURLDefaultsDropSignedRequestParamButNotOthers() {
   //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
-  //   $_SERVER['REQUEST_URI'] =
-  //     '/examples?signed_request=xx42xx&do_not_drop=xx43xx';
+  //   $_SERVER['REQUEST_URI'] = '/examples?signed_request=xx42xx&do_not_drop=xx43xx';
   //   $etalio = new TransientEtalio(array(
   //     'appId'  => self::APP_ID,
   //     'secret' => self::SECRET,
   //   ));
-  //   $expectEncodedUrl = rawurlencode('http://fbrell.com/examples');
+  //   $expectEncodedUrl = rawurlencode('https://fbrell.com/examples');
   //   $this->assertFalse(strpos($etalio->getLoginUrl(), 'xx42xx'),
   //                      'Expect the session param to be dropped.');
   //   $this->assertTrue(strpos($etalio->getLoginUrl(), 'xx43xx') > -1,
   //                     'Expect the do_not_drop param to exist.');
   // }
 
-  // public function testLoginURLCustomNext() {
-  //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
-  //   $_SERVER['REQUEST_URI'] = '/examples';
-  //   $etalio = new TransientEtalio(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET,
-  //   ));
-  //   $next = 'http://fbrell.com/custom';
-  //   $loginUrl = $etalio->getLoginUrl(array(
-  //     'redirect_uri' => $next,
-  //     'cancel_url' => $next
-  //   ));
-  //   $currentEncodedUrl = rawurlencode('http://fbrell.com/examples');
-  //   $expectedEncodedUrl = rawurlencode($next);
-  //   $this->assertNotNull(strpos($loginUrl, $expectedEncodedUrl),
-  //                        'Expect the custom url to exist.');
-  //   $this->assertFalse(strpos($loginUrl, $currentEncodedUrl),
-  //                     'Expect the current url to not exist.');
-  // }
+  public function testLoginURLCustomNext() {
+    $_SERVER['HTTP_HOST'] = 'fbrell.com';
+    $_SERVER['REQUEST_URI'] = '/examples';
+    $etalio = new TransientEtalio(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET,
+    ));
+    $next = 'http://fbrell.com/custom';
+    $loginUrl = $etalio->getLoginUrl(array(
+      'redirect_uri' => $next,
+      'cancel_url' => $next
+    ));
+    $currentEncodedUrl = rawurlencode('http://fbrell.com/examples');
+    $expectedEncodedUrl = rawurlencode($next);
+    $this->assertNotNull(strpos($loginUrl, $expectedEncodedUrl),
+                         'Expect the custom url to exist.');
+    $this->assertFalse(strpos($loginUrl, $currentEncodedUrl),
+                      'Expect the current url to not exist.');
+  }
 
-  // public function testLogoutURLDefaults() {
-  //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
-  //   $_SERVER['REQUEST_URI'] = '/examples';
-  //   $etalio = new TransientEtalio(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET,
-  //   ));
-  //   $encodedUrl = rawurlencode('http://fbrell.com/examples');
-  //   $this->assertNotNull(strpos($etalio->getLogoutUrl(), $encodedUrl),
-  //                        'Expect the current url to exist.');
-  //   $this->assertFalse(strpos($etalio->getLogoutUrl(), self::SECRET));
-  // }
+  public function testLogoutURLDefaults() {
+    $_SERVER['HTTP_HOST'] = 'fbrell.com';
+    $_SERVER['REQUEST_URI'] = '/examples';
+    $etalio = new TransientEtalio(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET,
+    ));
+    $encodedUrl = rawurlencode('http://fbrell.com/examples');
+    $this->assertNotNull(strpos($etalio->getLogoutUrl(), $encodedUrl),
+                         'Expect the current url to exist.');
+    $this->assertFalse(strpos($etalio->getLogoutUrl(), self::SECRET));
+  }
 
-  // public function testLoginStatusURLDefaults() {
-  //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
-  //   $_SERVER['REQUEST_URI'] = '/examples';
-  //   $etalio = new TransientEtalio(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET,
-  //   ));
-  //   $encodedUrl = rawurlencode('http://fbrell.com/examples');
-  //   $this->assertNotNull(strpos($etalio->getLoginStatusUrl(), $encodedUrl),
-  //                        'Expect the current url to exist.');
-  // }
+  public function testLoginStatusURLDefaults() {
+    $_SERVER['HTTP_HOST'] = 'fbrell.com';
+    $_SERVER['REQUEST_URI'] = '/examples';
+    $etalio = new TransientEtalio(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET,
+    ));
+    $encodedUrl = rawurlencode('http://fbrell.com/examples');
+    $this->assertNotNull(strpos($etalio->getLoginStatusUrl(), $encodedUrl),
+                         'Expect the current url to exist.');
+  }
 
-  // public function testLoginStatusURLCustom() {
-  //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
-  //   $_SERVER['REQUEST_URI'] = '/examples';
-  //   $etalio = new TransientEtalio(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET,
-  //   ));
-  //   $encodedUrl1 = rawurlencode('http://fbrell.com/examples');
-  //   $okUrl = 'http://fbrell.com/here1';
-  //   $encodedUrl2 = rawurlencode($okUrl);
-  //   $loginStatusUrl = $etalio->getLoginStatusUrl(array(
-  //     'ok_session' => $okUrl,
-  //   ));
-  //   $this->assertNotNull(strpos($loginStatusUrl, $encodedUrl1),
-  //                        'Expect the current url to exist.');
-  //   $this->assertNotNull(strpos($loginStatusUrl, $encodedUrl2),
-  //                        'Expect the custom url to exist.');
-  // }
+  public function testLoginStatusURLCustom() {
+    $_SERVER['HTTP_HOST'] = 'fbrell.com';
+    $_SERVER['REQUEST_URI'] = '/examples';
+    $etalio = new TransientEtalio(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET,
+    ));
+    $encodedUrl1 = rawurlencode('http://fbrell.com/examples');
+    $okUrl = 'http://fbrell.com/here1';
+    $encodedUrl2 = rawurlencode($okUrl);
+    $loginStatusUrl = $etalio->getLoginStatusUrl(array(
+      'ok_session' => $okUrl,
+    ));
+    $this->assertNotNull(strpos($loginStatusUrl, $encodedUrl1),
+                         'Expect the current url to exist.');
+    $this->assertNotNull(strpos($loginStatusUrl, $encodedUrl2),
+                         'Expect the custom url to exist.');
+  }
 
-  // public function testNonDefaultPort() {
-  //   $_SERVER['HTTP_HOST'] = 'fbrell.com:8080';
-  //   $_SERVER['REQUEST_URI'] = '/examples';
-  //   $etalio = new TransientEtalio(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET,
-  //   ));
-  //   $encodedUrl = rawurlencode('http://fbrell.com:8080/examples');
-  //   $this->assertNotNull(strpos($etalio->getLoginUrl(), $encodedUrl),
-  //                        'Expect the current url to exist.');
-  // }
+  public function testNonDefaultPort() {
+    $_SERVER['HTTP_HOST'] = 'fbrell.com:8080';
+    $_SERVER['REQUEST_URI'] = '/examples';
+    $etalio = new TransientEtalio(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET,
+    ));
+    $encodedUrl = rawurlencode('http://fbrell.com:8080/examples');
+    $this->assertNotNull(strpos($etalio->getLoginUrl(), $encodedUrl),
+                         'Expect the current url to exist.');
+  }
 
-  // public function testSecureCurrentUrl() {
-  //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
-  //   $_SERVER['REQUEST_URI'] = '/examples';
-  //   $_SERVER['HTTPS'] = 'on';
-  //   $etalio = new TransientEtalio(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET,
-  //   ));
-  //   $encodedUrl = rawurlencode('https://fbrell.com/examples');
-  //   $this->assertNotNull(strpos($etalio->getLoginUrl(), $encodedUrl),
-  //                        'Expect the current url to exist.');
-  // }
+  public function testSecureCurrentUrl() {
+    $_SERVER['HTTP_HOST'] = 'fbrell.com';
+    $_SERVER['REQUEST_URI'] = '/examples';
+    $_SERVER['HTTPS'] = 'on';
+    $etalio = new TransientEtalio(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET,
+    ));
+    $encodedUrl = rawurlencode('https://fbrell.com/examples');
+    $this->assertNotNull(strpos($etalio->getLoginUrl(), $encodedUrl),
+                         'Expect the current url to exist.');
+  }
 
-  // public function testSecureCurrentUrlWithNonDefaultPort() {
-  //   $_SERVER['HTTP_HOST'] = 'fbrell.com:8080';
-  //   $_SERVER['REQUEST_URI'] = '/examples';
-  //   $_SERVER['HTTPS'] = 'on';
-  //   $etalio = new TransientEtalio(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET,
-  //   ));
-  //   $encodedUrl = rawurlencode('https://fbrell.com:8080/examples');
-  //   $this->assertNotNull(strpos($etalio->getLoginUrl(), $encodedUrl),
-  //                        'Expect the current url to exist.');
-  // }
+  public function testSecureCurrentUrlWithNonDefaultPort() {
+    $_SERVER['HTTP_HOST'] = 'fbrell.com:8080';
+    $_SERVER['REQUEST_URI'] = '/examples';
+    $_SERVER['HTTPS'] = 'on';
+    $etalio = new TransientEtalio(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET,
+    ));
+    $encodedUrl = rawurlencode('https://fbrell.com:8080/examples');
+    $this->assertNotNull(strpos($etalio->getLoginUrl(), $encodedUrl),
+                         'Expect the current url to exist.');
+  }
 
-  // public function testBase64UrlEncode() {
-  //   $input = 'Etalio rocks';
-  //   $output = 'RmFjZWJvb2sgcm9ja3M';
+  public function testBase64UrlEncode() {
+    $input = 'Etalio rocks';
+    $output = 'RXRhbGlvIHJvY2tz';
 
-  //   $this->assertEquals(ETALIOPublic::publicBase64UrlDecode($output), $input);
-  // }
+    $this->assertEquals(ETALIOPublic::publicBase64UrlDecode($output), $input);
+  }
 
   // public function testSignedToken() {
   //   $etalio = new ETALIOPublic(array(
@@ -835,35 +760,35 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   // }
 
   // public function testSignedRequestWithEmptyValue() {
-  //   $fb = new ETALIOPublicCookie(array(
+  //   $etalio = new ETALIOPublicCookie(array(
   //     'appId'  => self::APP_ID,
   //     'secret' => self::SECRET
   //   ));
   //   $_REQUEST['signed_request'] = self::kSignedRequestWithEmptyValue();
-  //   $this->assertNull($fb->getSignedRequest());
-  //   $_COOKIE[$fb->publicGetSignedRequestCookieName()] =
+  //   $this->assertNull($etalio->getSignedRequest());
+  //   $_COOKIE[$etalio->publicGetSignedRequestCookieName()] =
   //     self::kSignedRequestWithEmptyValue();
-  //   $this->assertNull($fb->getSignedRequest());
+  //   $this->assertNull($etalio->getSignedRequest());
   // }
 
   // public function testSignedRequestWithWrongAlgo() {
-  //   $fb = new ETALIOPublic(array(
+  //   $etalio = new ETALIOPublic(array(
   //     'appId'  => self::APP_ID,
   //     'secret' => self::SECRET
   //   ));
-  //   $payload = $fb->publicParseSignedRequest(
+  //   $payload = $etalio->publicParseSignedRequest(
   //     self::kSignedRequestWithWrongAlgo());
   //   $this->assertNull($payload, 'Expected nothing back.');
   // }
 
   // public function testMakeAndParse() {
-  //   $fb = new ETALIOPublic(array(
+  //   $etalio = new ETALIOPublic(array(
   //     'appId'  => self::APP_ID,
   //     'secret' => self::SECRET
   //   ));
   //   $data = array('foo' => 42);
-  //   $sr = $fb->publicMakeSignedRequest($data);
-  //   $decoded = $fb->publicParseSignedRequest($sr);
+  //   $sr = $etalio->publicMakeSignedRequest($data);
+  //   $decoded = $etalio->publicParseSignedRequest($sr);
   //   $this->assertEquals($data['foo'], $decoded['foo']);
   // }
 
@@ -871,11 +796,11 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //  * @expectedException InvalidArgumentException
   //  */
   // public function testMakeSignedRequestExpectsArray() {
-  //   $fb = new ETALIOPublic(array(
+  //   $etalio = new ETALIOPublic(array(
   //     'appId'  => self::APP_ID,
   //     'secret' => self::SECRET
   //   ));
-  //   $sr = $fb->publicMakeSignedRequest('');
+  //   $sr = $etalio->publicMakeSignedRequest('');
   // }
 
   // public function testBundledCACert() {
@@ -916,22 +841,22 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //                         '/me/videos should go against graph-video');
   // }
 
-  // public function testGetUserAndAccessTokenFromSession() {
-  //   $etalio = new PersistentETALIOPublic(array(
-  //                                        'appId'  => self::APP_ID,
-  //                                        'secret' => self::SECRET
-  //                                      ));
+  public function testGetUserAndAccessTokenFromSession() {
+    $etalio = new PersistentETALIOPublic(array(
+                                         'appId'  => self::APP_ID,
+                                         'secret' => self::SECRET
+                                       ));
 
-  //   $etalio->publicSetPersistentData('access_token',
-  //                                      self::$kExpiredAccessToken);
-  //   $etalio->publicSetPersistentData('user_id', 12345);
-  //   $this->assertEquals(self::$kExpiredAccessToken,
-  //                       $etalio->getAccessToken(),
-  //                       'Get access token from persistent store.');
-  //   $this->assertEquals('12345',
-  //                       $etalio->getUser(),
-  //                       'Get user id from persistent store.');
-  // }
+    $etalio->publicSetPersistentData('access_token',
+                                       self::$kExpiredAccessToken);
+    $etalio->publicSetPersistentData('user_id', 12345);
+    $this->assertEquals(self::$kExpiredAccessToken,
+                        $etalio->getAccessToken(),
+                        'Get access token from persistent store.');
+    $this->assertEquals('12345',
+                        $etalio->getUser(),
+                        'Get user id from persistent store.');
+  }
 
   // public function testGetUserAndAccessTokenFromSignedRequestNotSession() {
   //   $etalio = new PersistentETALIOPublic(array(
@@ -956,25 +881,25 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //     'Failed to extract an access token from the signed request.');
   // }
 
-  // public function testGetUserWithoutCodeOrSignedRequestOrSession() {
-  //   $etalio = new PersistentETALIOPublic(array(
-  //                                        'appId'  => self::APP_ID,
-  //                                        'secret' => self::SECRET
-  //                                      ));
+  public function testGetUserWithoutCodeOrSignedRequestOrSession() {
+    $etalio = new PersistentETALIOPublic(array(
+                                         'appId'  => self::APP_ID,
+                                         'secret' => self::SECRET
+                                       ));
 
-  //   // deliberately leave $_REQUEST and _$SESSION empty
-  //   $this->assertEmpty($_REQUEST,
-  //                      'GET, POST, and COOKIE params exist even though '.
-  //                      'they should.  Test cannot succeed unless all of '.
-  //                      '$_REQUEST is empty.');
-  //   $this->assertEmpty($_SESSION,
-  //                      'Session is carrying state and should not be.');
-  //   $this->assertEmpty($etalio->getUser(),
-  //                      'Got a user id, even without a signed request, '.
-  //                      'access token, or session variable.');
-  //   $this->assertEmpty($_SESSION,
-  //                      'Session superglobal incorrectly populated by getUser.');
-  // }
+    // deliberately leave $_REQUEST and _$SESSION empty
+    $this->assertEmpty($_REQUEST,
+                       'GET, POST, and COOKIE params exist even though '.
+                       'they should.  Test cannot succeed unless all of '.
+                       '$_REQUEST is empty.');
+    $this->assertEmpty($_SESSION,
+                       'Session is carrying state and should not be.');
+    $this->assertEmpty($etalio->getUser(),
+                       'Got a user id, even without a signed request, '.
+                       'access token, or session variable.');
+    $this->assertEmpty($_SESSION,
+                       'Session superglobal incorrectly populated by getUser.');
+  }
 
   // public function testGetAccessTokenUsingCodeInJsSdkCookie() {
   //   $code = 'code1';
@@ -1042,57 +967,57 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //   $this->assertEquals(self::APP_ID.'|'.self::SECRET, $stub->getAccessToken());
   // }
 
-  // public function testInvalidCodeWillClearData() {
-  //   $code = 'code1';
-  //   $methods_to_stub = array(
-  //     'getCode',
-  //     'getAccessTokenFromCode',
-  //     'clearAllPersistentData',
-  //   );
-  //   $constructor_args = array(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET
-  //   ));
-  //   $stub = $this->getMock(
-  //     'TransientEtalio', $methods_to_stub, $constructor_args);
-  //   $stub
-  //     ->expects($this->once())
-  //     ->method('getCode')
-  //     ->will($this->returnValue($code));
-  //   $stub
-  //     ->expects($this->once())
-  //     ->method('getAccessTokenFromCode')
-  //     ->will($this->returnValue(null));
-  //   $stub
-  //     ->expects($this->once())
-  //     ->method('clearAllPersistentData');
-  //   $this->assertEquals(self::APP_ID.'|'.self::SECRET, $stub->getAccessToken());
-  // }
+  public function testInvalidCodeWillClearData() {
+    $code = 'code1';
+    $methods_to_stub = array(
+      'getCode',
+      'getAccessTokenFromCode',
+      'clearAllPersistentData',
+    );
+    $constructor_args = array(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET
+    ));
+    $stub = $this->getMock(
+      'TransientEtalio', $methods_to_stub, $constructor_args);
+    $stub
+      ->expects($this->once())
+      ->method('getCode')
+      ->will($this->returnValue($code));
+    $stub
+      ->expects($this->once())
+      ->method('getAccessTokenFromCode')
+      ->will($this->returnValue(null));
+    $stub
+      ->expects($this->once())
+      ->method('clearAllPersistentData');
+    $this->assertEquals(self::APP_ID.'|'.self::SECRET, $stub->getAccessToken());
+  }
 
-  // public function testValidCodeToToken() {
-  //   $code = 'code1';
-  //   $access_token = 'at1';
-  //   $methods_to_stub = array(
-  //     'getSignedRequest',
-  //     'getCode',
-  //     'getAccessTokenFromCode',
-  //   );
-  //   $constructor_args = array(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET
-  //   ));
-  //   $stub = $this->getMock(
-  //     'TransientEtalio', $methods_to_stub, $constructor_args);
-  //   $stub
-  //     ->expects($this->once())
-  //     ->method('getCode')
-  //     ->will($this->returnValue($code));
-  //   $stub
-  //     ->expects($this->once())
-  //     ->method('getAccessTokenFromCode')
-  //     ->will($this->returnValueMap(array(array($code, null, $access_token))));
-  //   $this->assertEquals($stub->getAccessToken(), $access_token);
-  // }
+  public function testValidCodeToToken() {
+    $code = 'code1';
+    $access_token = 'at1';
+    $methods_to_stub = array(
+      'getSignedRequest',
+      'getCode',
+      'getAccessTokenFromCode',
+    );
+    $constructor_args = array(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET
+    ));
+    $stub = $this->getMock(
+      'TransientEtalio', $methods_to_stub, $constructor_args);
+    $stub
+      ->expects($this->once())
+      ->method('getCode')
+      ->will($this->returnValue($code));
+    $stub
+      ->expects($this->once())
+      ->method('getAccessTokenFromCode')
+      ->will($this->returnValueMap(array(array($code, null, $access_token))));
+    $this->assertEquals($stub->getAccessToken(), $access_token);
+  }
 
   // public function testSignedRequestWithoutAuthClearsDataInAvailData() {
   //   $methods_to_stub = array('getSignedRequest', 'clearAllPersistentData');
@@ -1112,116 +1037,116 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //   $this->assertEquals(0, $stub->getUser());
   // }
 
-  // public function testFailedToGetUserFromAccessTokenClearsData() {
-  //   $methods_to_stub = array(
-  //     'getAccessToken',
-  //     'getUserFromAccessToken',
-  //     'clearAllPersistentData',
-  //   );
-  //   $constructor_args = array(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET
-  //   ));
-  //   $stub = $this->getMock(
-  //     'TransientEtalio', $methods_to_stub, $constructor_args);
-  //   $stub
-  //     ->expects($this->once())
-  //     ->method('getAccessToken')
-  //     ->will($this->returnValue('at1'));
-  //   $stub
-  //     ->expects($this->once())
-  //     ->method('getUserFromAccessToken');
-  //   $stub
-  //     ->expects($this->once())
-  //     ->method('clearAllPersistentData');
-  //   $this->assertEquals(0, $stub->getUser());
-  // }
+  public function testFailedToGetUserFromAccessTokenClearsData() {
+    $methods_to_stub = array(
+      'getAccessToken',
+      'getUserFromAccessToken',
+      'clearAllPersistentData',
+    );
+    $constructor_args = array(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET
+    ));
+    $stub = $this->getMock(
+      'TransientEtalio', $methods_to_stub, $constructor_args);
+    $stub
+      ->expects($this->once())
+      ->method('getAccessToken')
+      ->will($this->returnValue('at1'));
+    $stub
+      ->expects($this->once())
+      ->method('getUserFromAccessToken');
+    $stub
+      ->expects($this->once())
+      ->method('clearAllPersistentData');
+    $this->assertEquals(0, $stub->getUser());
+  }
 
-  // public function testUserFromAccessTokenIsStored() {
-  //   $methods_to_stub = array(
-  //     'getAccessToken',
-  //     'getUserFromAccessToken',
-  //     'setPersistentData',
-  //   );
-  //   $constructor_args = array(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET
-  //   ));
-  //   $user = 42;
-  //   $stub = $this->getMock(
-  //     'TransientEtalio', $methods_to_stub, $constructor_args);
-  //   $stub
-  //     ->expects($this->once())
-  //     ->method('getAccessToken')
-  //     ->will($this->returnValue('at1'));
-  //   $stub
-  //     ->expects($this->once())
-  //     ->method('getUserFromAccessToken')
-  //     ->will($this->returnValue($user));
-  //   $stub
-  //     ->expects($this->once())
-  //     ->method('setPersistentData');
-  //   $this->assertEquals($user, $stub->getUser());
-  // }
+  public function testUserFromAccessTokenIsStored() {
+    $methods_to_stub = array(
+      'getAccessToken',
+      'getUserFromAccessToken',
+      'setPersistentData',
+    );
+    $constructor_args = array(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET
+    ));
+    $user = 42;
+    $stub = $this->getMock(
+      'TransientEtalio', $methods_to_stub, $constructor_args);
+    $stub
+      ->expects($this->once())
+      ->method('getAccessToken')
+      ->will($this->returnValue('at1'));
+    $stub
+      ->expects($this->once())
+      ->method('getUserFromAccessToken')
+      ->will($this->returnValue($user));
+    $stub
+      ->expects($this->once())
+      ->method('setPersistentData');
+    $this->assertEquals($user, $stub->getUser());
+  }
 
-  // public function testUserFromAccessTokenPullsID() {
-  //   $methods_to_stub = array(
-  //     'getAccessToken',
-  //     'api',
-  //   );
-  //   $constructor_args = array(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET
-  //   ));
-  //   $user = 42;
-  //   $stub = $this->getMock(
-  //     'TransientEtalio', $methods_to_stub, $constructor_args);
-  //   $stub
-  //     ->expects($this->once())
-  //     ->method('getAccessToken')
-  //     ->will($this->returnValue('at1'));
-  //   $stub
-  //     ->expects($this->once())
-  //     ->method('api')
-  //     ->will($this->returnValue(array('id' => $user)));
-  //   $this->assertEquals($user, $stub->getUser());
-  // }
+  public function testUserFromAccessTokenPullsID() {
+    $methods_to_stub = array(
+      'getAccessToken',
+      'api',
+    );
+    $constructor_args = array(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET
+    ));
+    $user = 42;
+    $stub = $this->getMock(
+      'TransientEtalio', $methods_to_stub, $constructor_args);
+    $stub
+      ->expects($this->once())
+      ->method('getAccessToken')
+      ->will($this->returnValue('at1'));
+    $stub
+      ->expects($this->once())
+      ->method('api')
+      ->will($this->returnValue(array('id' => $user)));
+    $this->assertEquals($user, $stub->getUser());
+  }
 
-  // public function testUserFromAccessTokenResetsOnApiException() {
-  //   $methods_to_stub = array(
-  //     'getAccessToken',
-  //     'clearAllPersistentData',
-  //     'api',
-  //   );
-  //   $constructor_args = array(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET
-  //   ));
-  //   $stub = $this->getMock(
-  //     'TransientEtalio', $methods_to_stub, $constructor_args);
-  //   $stub
-  //     ->expects($this->once())
-  //     ->method('getAccessToken')
-  //     ->will($this->returnValue('at1'));
-  //   $stub
-  //     ->expects($this->once())
-  //     ->method('api')
-  //     ->will($this->throwException(new EtalioApiException(false)));
-  //   $stub
-  //     ->expects($this->once())
-  //     ->method('clearAllPersistentData');
-  //   $this->assertEquals(0, $stub->getUser());
-  // }
+  public function testUserFromAccessTokenResetsOnApiException() {
+    $methods_to_stub = array(
+      'getAccessToken',
+      'clearAllPersistentData',
+      'api',
+    );
+    $constructor_args = array(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET
+    ));
+    $stub = $this->getMock(
+      'TransientEtalio', $methods_to_stub, $constructor_args);
+    $stub
+      ->expects($this->once())
+      ->method('getAccessToken')
+      ->will($this->returnValue('at1'));
+    $stub
+      ->expects($this->once())
+      ->method('api')
+      ->will($this->throwException(new EtalioApiException(false)));
+    $stub
+      ->expects($this->once())
+      ->method('clearAllPersistentData');
+    $this->assertEquals(0, $stub->getUser());
+  }
 
-  // public function testEmptyCodeReturnsFalse() {
-  //   $fb = new ETALIOPublicGetAccessTokenFromCode(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET
-  //   ));
-  //   $this->assertFalse($fb->publicGetAccessTokenFromCode(''));
-  //   $this->assertFalse($fb->publicGetAccessTokenFromCode(null));
-  //   $this->assertFalse($fb->publicGetAccessTokenFromCode(false));
-  // }
+  public function testEmptyCodeReturnsFalse() {
+    $etalio = new ETALIOPublicGetAccessTokenFromCode(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET
+    ));
+    $this->assertFalse($etalio->publicGetAccessTokenFromCode(''));
+    $this->assertFalse($etalio->publicGetAccessTokenFromCode(null));
+    $this->assertFalse($etalio->publicGetAccessTokenFromCode(false));
+  }
 
   // public function testNullRedirectURIUsesCurrentURL() {
   //   $methods_to_stub = array(
@@ -1303,13 +1228,13 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //   $this->assertFalse($stub->publicGetAccessTokenFromCode('c', ''));
   // }
 
-  // public function testExistingStateRestoredInConstructor() {
-  //   $fb = new ETALIOPublicState(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET
-  //   ));
-  //   $this->assertEquals(ETALIOPublicState::STATE, $fb->publicGetState());
-  // }
+  public function testExistingStateRestoredInConstructor() {
+    $etalio = new ETALIOPublicState(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET
+    ));
+    $this->assertEquals(ETALIOPublicState::STATE, $etalio->publicGetState());
+  }
 
   // public function testMissingAccessTokenInCodeExchangeIsIgnored() {
   //   $methods_to_stub = array(
@@ -1328,60 +1253,60 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //   $this->assertFalse($stub->publicGetAccessTokenFromCode('c', ''));
   // }
 
-  // public function testExceptionConstructorWithErrorCode() {
-  //   $code = 404;
-  //   $e = new EtalioApiException(array('error_code' => $code));
-  //   $this->assertEquals($code, $e->getCode());
-  // }
+  public function testExceptionConstructorWithErrorCode() {
+    $code = 404;
+    $e = new EtalioApiException(array('error_code' => $code));
+    $this->assertEquals($code, $e->getCode());
+  }
 
-  // // this happens often despite the fact that it is useless
-  // public function testExceptionTypeFalse() {
-  //   $e = new EtalioApiException(false);
-  //   $this->assertEquals('Exception', $e->getType());
-  // }
+  // this happens often despite the fact that it is useless
+  public function testExceptionTypeFalse() {
+    $e = new EtalioApiException(false);
+    $this->assertEquals('Exception', $e->getType());
+  }
 
-  // public function testExceptionTypeMixedDraft00() {
-  //   $e = new EtalioApiException(array('error' => array('message' => 'foo')));
-  //   $this->assertEquals('Exception', $e->getType());
-  // }
+  public function testExceptionTypeMixedDraft00() {
+    $e = new EtalioApiException(array('error' => array('message' => 'foo')));
+    $this->assertEquals('Exception', $e->getType());
+  }
 
-  // public function testExceptionTypeDraft00() {
-  //   $error = 'foo';
-  //   $e = new EtalioApiException(
-  //     array('error' => array('type' => $error, 'message' => 'hello world')));
-  //   $this->assertEquals($error, $e->getType());
-  // }
+  public function testExceptionTypeDraft00() {
+    $error = 'foo';
+    $e = new EtalioApiException(
+      array('error' => array('type' => $error, 'message' => 'hello world')));
+    $this->assertEquals($error, $e->getType());
+  }
 
-  // public function testExceptionTypeDraft10() {
-  //   $error = 'foo';
-  //   $e = new EtalioApiException(array('error' => $error));
-  //   $this->assertEquals($error, $e->getType());
-  // }
+  public function testExceptionTypeDraft10() {
+    $error = 'foo';
+    $e = new EtalioApiException(array('error' => $error));
+    $this->assertEquals($error, $e->getType());
+  }
 
-  // public function testExceptionTypeDefault() {
-  //   $e = new EtalioApiException(array('error' => false));
-  //   $this->assertEquals('Exception', $e->getType());
-  // }
+  public function testExceptionTypeDefault() {
+    $e = new EtalioApiException(array('error' => false));
+    $this->assertEquals('Exception', $e->getType());
+  }
 
-  // public function testExceptionToString() {
-  //   $e = new EtalioApiException(array(
-  //     'error_code' => 1,
-  //     'error_description' => 'foo',
-  //   ));
-  //   $this->assertEquals('Exception: 1: foo', (string) $e);
-  // }
+  public function testExceptionToString() {
+    $e = new EtalioApiException(array(
+      'error_code' => 1,
+      'error_description' => 'foo',
+    ));
+    $this->assertEquals('Exception: 1: foo', (string) $e);
+  }
 
   // public function testDestroyClearsCookie() {
-  //   $fb = new ETALIOPublicCookie(array(
+  //   $etalio = new ETALIOPublicCookie(array(
   //     'appId'  => self::APP_ID,
   //     'secret' => self::SECRET,
   //   ));
-  //   $_COOKIE[$fb->publicGetSignedRequestCookieName()] = 'foo';
-  //   $_COOKIE[$fb->publicGetMetadataCookieName()] = 'base_domain=fbrell.com';
+  //   $_COOKIE[$etalio->publicGetSignedRequestCookieName()] = 'foo';
+  //   $_COOKIE[$etalio->publicGetMetadataCookieName()] = 'base_domain=fbrell.com';
   //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
-  //   $fb->destroySession();
+  //   $etalio->destroySession();
   //   $this->assertFalse(
-  //     array_key_exists($fb->publicGetSignedRequestCookieName(), $_COOKIE));
+  //     array_key_exists($etalio->publicGetSignedRequestCookieName(), $_COOKIE));
   // }
 
   // public function testAuthExpireSessionDestroysSession() {
@@ -1462,109 +1387,109 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //     'method' => 'get',
   //     'foo' => $foo,
   //   );
-  //   $fb = new ETALIORecordMakeRequest(array(
+  //   $etalio = new ETALIORecordMakeRequest(array(
   //     'appId'  => self::APP_ID,
   //     'secret' => self::SECRET,
   //   ));
-  //   $fb->api('/naitik', $params);
-  //   $requests = $fb->publicGetRequests();
+  //   $etalio->api('/naitik', $params);
+  //   $requests = $etalio->publicGetRequests();
   //   $this->assertEquals(json_encode($foo), $requests[0]['params']['foo']);
   // }
 
-  // public function testSessionBackedEtalio() {
-  //   $fb = new PersistentETALIOPublic(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET,
-  //   ));
-  //   $key = 'state';
-  //   $val = 'foo';
-  //   $fb->publicSetPersistentData($key, $val);
-  //   $this->assertEquals(
-  //     $val,
-  //     $_SESSION[sprintf('fb_%s_%s', self::APP_ID, $key)]
-  //   );
-  //   $this->assertEquals(
-  //     $val,
-  //     $fb->publicGetPersistentData($key)
-  //   );
-  // }
+  public function testSessionBackedEtalio() {
+    $etalio = new PersistentETALIOPublic(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET,
+    ));
+    $key = 'state';
+    $val = 'foo';
+    $etalio->publicSetPersistentData($key, $val);
+    $this->assertEquals(
+      $val,
+      $_SESSION[sprintf('etalio_%s_%s', self::APP_ID, $key)]
+    );
+    $this->assertEquals(
+      $val,
+      $etalio->publicGetPersistentData($key)
+    );
+  }
 
-  // public function testSessionBackedEtalioIgnoresUnsupportedKey() {
-  //   $fb = new PersistentETALIOPublic(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET,
-  //   ));
-  //   $key = '--invalid--';
-  //   $val = 'foo';
-  //   $fb->publicSetPersistentData($key, $val);
-  //   $this->assertFalse(
-  //     array_key_exists(
-  //       sprintf('fb_%s_%s', self::APP_ID, $key),
-  //       $_SESSION
-  //     )
-  //   );
-  //   $this->assertFalse($fb->publicGetPersistentData($key));
-  // }
+  public function testSessionBackedEtalioIgnoresUnsupportedKey() {
+    $etalio = new PersistentETALIOPublic(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET,
+    ));
+    $key = '--invalid--';
+    $val = 'foo';
+    $etalio->publicSetPersistentData($key, $val);
+    $this->assertFalse(
+      array_key_exists(
+        sprintf('etalio_%s_%s', self::APP_ID, $key),
+        $_SESSION
+      )
+    );
+    $this->assertFalse($etalio->publicGetPersistentData($key));
+  }
 
-  // public function testClearSessionBackedEtalio() {
-  //   $fb = new PersistentETALIOPublic(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET,
-  //   ));
-  //   $key = 'state';
-  //   $val = 'foo';
-  //   $fb->publicSetPersistentData($key, $val);
-  //   $this->assertEquals(
-  //     $val,
-  //     $_SESSION[sprintf('fb_%s_%s', self::APP_ID, $key)]
-  //   );
-  //   $this->assertEquals(
-  //     $val,
-  //     $fb->publicGetPersistentData($key)
-  //   );
-  //   $fb->publicClearPersistentData($key);
-  //   $this->assertFalse(
-  //     array_key_exists(
-  //       sprintf('fb_%s_%s', self::APP_ID, $key),
-  //       $_SESSION
-  //     )
-  //   );
-  //   $this->assertFalse($fb->publicGetPersistentData($key));
-  // }
+  public function testClearSessionBackedEtalio() {
+    $etalio = new PersistentETALIOPublic(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET,
+    ));
+    $key = 'state';
+    $val = 'foo';
+    $etalio->publicSetPersistentData($key, $val);
+    $this->assertEquals(
+      $val,
+      $_SESSION[sprintf('etalio_%s_%s', self::APP_ID, $key)]
+    );
+    $this->assertEquals(
+      $val,
+      $etalio->publicGetPersistentData($key)
+    );
+    $etalio->publicClearPersistentData($key);
+    $this->assertFalse(
+      array_key_exists(
+        sprintf('fb_%s_%s', self::APP_ID, $key),
+        $_SESSION
+      )
+    );
+    $this->assertFalse($etalio->publicGetPersistentData($key));
+  }
 
-  // public function testSessionBackedEtalioIgnoresUnsupportedKeyInClear() {
-  //   $fb = new PersistentETALIOPublic(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET,
-  //   ));
-  //   $key = '--invalid--';
-  //   $val = 'foo';
-  //   $session_var_name = sprintf('fb_%s_%s', self::APP_ID, $key);
-  //   $_SESSION[$session_var_name] = $val;
-  //   $fb->publicClearPersistentData($key);
-  //   $this->assertTrue(array_key_exists($session_var_name, $_SESSION));
-  //   $this->assertFalse($fb->publicGetPersistentData($key));
-  // }
+  public function testSessionBackedEtalioIgnoresUnsupportedKeyInClear() {
+    $etalio = new PersistentETALIOPublic(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET,
+    ));
+    $key = '--invalid--';
+    $val = 'foo';
+    $session_var_name = sprintf('etalio_%s_%s', self::APP_ID, $key);
+    $_SESSION[$session_var_name] = $val;
+    $etalio->publicClearPersistentData($key);
+    $this->assertTrue(array_key_exists($session_var_name, $_SESSION));
+    $this->assertFalse($etalio->publicGetPersistentData($key));
+  }
 
-  // public function testClearAllSessionBackedEtalio() {
-  //   $fb = new PersistentETALIOPublic(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET,
-  //   ));
-  //   $key = 'state';
-  //   $val = 'foo';
-  //   $session_var_name = sprintf('fb_%s_%s', self::APP_ID, $key);
-  //   $fb->publicSetPersistentData($key, $val);
-  //   $this->assertEquals($val, $_SESSION[$session_var_name]);
-  //   $this->assertEquals($val, $fb->publicGetPersistentData($key));
-  //   $fb->publicClearAllPersistentData();
-  //   $this->assertFalse(array_key_exists($session_var_name, $_SESSION));
-  //   $this->assertFalse($fb->publicGetPersistentData($key));
-  // }
+  public function testClearAllSessionBackedEtalio() {
+    $etalio = new PersistentETALIOPublic(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET,
+    ));
+    $key = 'state';
+    $val = 'foo';
+    $session_var_name = sprintf('etalio_%s_%s', self::APP_ID, $key);
+    $etalio->publicSetPersistentData($key, $val);
+    $this->assertEquals($val, $_SESSION[$session_var_name]);
+    $this->assertEquals($val, $etalio->publicGetPersistentData($key));
+    $etalio->publicClearAllPersistentData();
+    $this->assertFalse(array_key_exists($session_var_name, $_SESSION));
+    $this->assertFalse($etalio->publicGetPersistentData($key));
+  }
 
   // public function testSharedSessionBackedEtalio() {
   //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
-  //   $fb = new PersistentETALIOPublic(array(
+  //   $etalio = new PersistentETALIOPublic(array(
   //     'appId'  => self::APP_ID,
   //     'secret' => self::SECRET,
   //     'sharedSession' => true,
@@ -1573,18 +1498,18 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //   $val = 'foo';
   //   $session_var_name = sprintf(
   //     '%s_fb_%s_%s',
-  //     $fb->publicGetSharedSessionID(),
+  //     $etalio->publicGetSharedSessionID(),
   //     self::APP_ID,
   //     $key
   //   );
-  //   $fb->publicSetPersistentData($key, $val);
+  //   $etalio->publicSetPersistentData($key, $val);
   //   $this->assertEquals($val, $_SESSION[$session_var_name]);
-  //   $this->assertEquals($val, $fb->publicGetPersistentData($key));
+  //   $this->assertEquals($val, $etalio->publicGetPersistentData($key));
   // }
 
   // public function testSharedSessionBackedEtalioIgnoresUnsupportedKey() {
   //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
-  //   $fb = new PersistentETALIOPublic(array(
+  //   $etalio = new PersistentETALIOPublic(array(
   //     'appId'  => self::APP_ID,
   //     'secret' => self::SECRET,
   //     'sharedSession' => true,
@@ -1593,18 +1518,18 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //   $val = 'foo';
   //   $session_var_name = sprintf(
   //     '%s_fb_%s_%s',
-  //     $fb->publicGetSharedSessionID(),
+  //     $etalio->publicGetSharedSessionID(),
   //     self::APP_ID,
   //     $key
   //   );
-  //   $fb->publicSetPersistentData($key, $val);
+  //   $etalio->publicSetPersistentData($key, $val);
   //   $this->assertFalse(array_key_exists($session_var_name, $_SESSION));
-  //   $this->assertFalse($fb->publicGetPersistentData($key));
+  //   $this->assertFalse($etalio->publicGetPersistentData($key));
   // }
 
   // public function testSharedClearSessionBackedEtalio() {
   //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
-  //   $fb = new PersistentETALIOPublic(array(
+  //   $etalio = new PersistentETALIOPublic(array(
   //     'appId'  => self::APP_ID,
   //     'secret' => self::SECRET,
   //     'sharedSession' => true,
@@ -1613,21 +1538,21 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //   $val = 'foo';
   //   $session_var_name = sprintf(
   //     '%s_fb_%s_%s',
-  //     $fb->publicGetSharedSessionID(),
+  //     $etalio->publicGetSharedSessionID(),
   //     self::APP_ID,
   //     $key
   //   );
-  //   $fb->publicSetPersistentData($key, $val);
+  //   $etalio->publicSetPersistentData($key, $val);
   //   $this->assertEquals($val, $_SESSION[$session_var_name]);
-  //   $this->assertEquals($val, $fb->publicGetPersistentData($key));
-  //   $fb->publicClearPersistentData($key);
+  //   $this->assertEquals($val, $etalio->publicGetPersistentData($key));
+  //   $etalio->publicClearPersistentData($key);
   //   $this->assertFalse(array_key_exists($session_var_name, $_SESSION));
-  //   $this->assertFalse($fb->publicGetPersistentData($key));
+  //   $this->assertFalse($etalio->publicGetPersistentData($key));
   // }
 
   // public function testSharedSessionBackedEtalioIgnoresUnsupportedKeyInClear() {
   //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
-  //   $fb = new PersistentETALIOPublic(array(
+  //   $etalio = new PersistentETALIOPublic(array(
   //     'appId'  => self::APP_ID,
   //     'secret' => self::SECRET,
   //     'sharedSession' => true,
@@ -1636,19 +1561,19 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //   $val = 'foo';
   //   $session_var_name = sprintf(
   //     '%s_fb_%s_%s',
-  //     $fb->publicGetSharedSessionID(),
+  //     $etalio->publicGetSharedSessionID(),
   //     self::APP_ID,
   //     $key
   //   );
   //   $_SESSION[$session_var_name] = $val;
-  //   $fb->publicClearPersistentData($key);
+  //   $etalio->publicClearPersistentData($key);
   //   $this->assertTrue(array_key_exists($session_var_name, $_SESSION));
-  //   $this->assertFalse($fb->publicGetPersistentData($key));
+  //   $this->assertFalse($etalio->publicGetPersistentData($key));
   // }
 
   // public function testSharedClearAllSessionBackedEtalio() {
   //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
-  //   $fb = new PersistentETALIOPublic(array(
+  //   $etalio = new PersistentETALIOPublic(array(
   //     'appId'  => self::APP_ID,
   //     'secret' => self::SECRET,
   //     'sharedSession' => true,
@@ -1657,165 +1582,165 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   //   $val = 'foo';
   //   $session_var_name = sprintf(
   //     '%s_fb_%s_%s',
-  //     $fb->publicGetSharedSessionID(),
+  //     $etalio->publicGetSharedSessionID(),
   //     self::APP_ID,
   //     $key
   //   );
-  //   $fb->publicSetPersistentData($key, $val);
+  //   $etalio->publicSetPersistentData($key, $val);
   //   $this->assertEquals($val, $_SESSION[$session_var_name]);
-  //   $this->assertEquals($val, $fb->publicGetPersistentData($key));
-  //   $fb->publicClearAllPersistentData();
+  //   $this->assertEquals($val, $etalio->publicGetPersistentData($key));
+  //   $etalio->publicClearAllPersistentData();
   //   $this->assertFalse(array_key_exists($session_var_name, $_SESSION));
-  //   $this->assertFalse($fb->publicGetPersistentData($key));
+  //   $this->assertFalse($etalio->publicGetPersistentData($key));
   // }
 
   // public function testSharedSessionBackedEtalioIsRestored() {
   //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
-  //   $fb = new PersistentETALIOPublic(array(
+  //   $etalio = new PersistentETALIOPublic(array(
   //     'appId'  => self::APP_ID,
   //     'secret' => self::SECRET,
   //     'sharedSession' => true,
   //   ));
   //   $key = 'state';
   //   $val = 'foo';
-  //   $shared_session_id = $fb->publicGetSharedSessionID();
+  //   $shared_session_id = $etalio->publicGetSharedSessionID();
   //   $session_var_name = sprintf(
   //     '%s_fb_%s_%s',
   //     $shared_session_id,
   //     self::APP_ID,
   //     $key
   //   );
-  //   $fb->publicSetPersistentData($key, $val);
+  //   $etalio->publicSetPersistentData($key, $val);
   //   $this->assertEquals($val, $_SESSION[$session_var_name]);
-  //   $this->assertEquals($val, $fb->publicGetPersistentData($key));
+  //   $this->assertEquals($val, $etalio->publicGetPersistentData($key));
 
   //   // check the new instance has the same data
-  //   $fb = new PersistentETALIOPublic(array(
+  //   $etalio = new PersistentETALIOPublic(array(
   //     'appId'  => self::APP_ID,
   //     'secret' => self::SECRET,
   //     'sharedSession' => true,
   //   ));
   //   $this->assertEquals(
   //     $shared_session_id,
-  //     $fb->publicGetSharedSessionID()
+  //     $etalio->publicGetSharedSessionID()
   //   );
-  //   $this->assertEquals($val, $fb->publicGetPersistentData($key));
+  //   $this->assertEquals($val, $etalio->publicGetPersistentData($key));
   // }
 
   // public function testSharedSessionBackedEtalioIsNotRestoredWhenCorrupt() {
   //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
-  //   $fb = new PersistentETALIOPublic(array(
+  //   $etalio = new PersistentETALIOPublic(array(
   //     'appId'  => self::APP_ID,
   //     'secret' => self::SECRET,
   //     'sharedSession' => true,
   //   ));
   //   $key = 'state';
   //   $val = 'foo';
-  //   $shared_session_id = $fb->publicGetSharedSessionID();
+  //   $shared_session_id = $etalio->publicGetSharedSessionID();
   //   $session_var_name = sprintf(
   //     '%s_fb_%s_%s',
   //     $shared_session_id,
   //     self::APP_ID,
   //     $key
   //   );
-  //   $fb->publicSetPersistentData($key, $val);
+  //   $etalio->publicSetPersistentData($key, $val);
   //   $this->assertEquals($val, $_SESSION[$session_var_name]);
-  //   $this->assertEquals($val, $fb->publicGetPersistentData($key));
+  //   $this->assertEquals($val, $etalio->publicGetPersistentData($key));
 
   //   // break the cookie
-  //   $cookie_name = $fb->publicGetSharedSessionCookieName();
+  //   $cookie_name = $etalio->publicGetSharedSessionCookieName();
   //   $_COOKIE[$cookie_name] = substr($_COOKIE[$cookie_name], 1);
 
   //   // check the new instance does not have the data
-  //   $fb = new PersistentETALIOPublic(array(
+  //   $etalio = new PersistentETALIOPublic(array(
   //     'appId'  => self::APP_ID,
   //     'secret' => self::SECRET,
   //     'sharedSession' => true,
   //   ));
-  //   $this->assertFalse($fb->publicGetPersistentData($key));
+  //   $this->assertFalse($etalio->publicGetPersistentData($key));
   //   $this->assertNotEquals(
   //     $shared_session_id,
-  //     $fb->publicGetSharedSessionID()
+  //     $etalio->publicGetSharedSessionID()
   //   );
   // }
 
-  // public function testHttpHost() {
-  //   $real = 'foo.com';
-  //   $_SERVER['HTTP_HOST'] = $real;
-  //   $_SERVER['HTTP_X_FORWARDED_HOST'] = 'evil.com';
-  //   $fb = new PersistentETALIOPublic(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET,
-  //   ));
-  //   $this->assertEquals($real, $fb->publicGetHttpHost());
-  // }
+  public function testHttpHost() {
+    $real = 'foo.com';
+    $_SERVER['HTTP_HOST'] = $real;
+    $_SERVER['HTTP_X_FORWARDED_HOST'] = 'evil.com';
+    $etalio = new PersistentETALIOPublic(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET,
+    ));
+    $this->assertEquals($real, $etalio->publicGetHttpHost());
+  }
 
-  // public function testHttpProtocol() {
-  //   $_SERVER['HTTPS'] = 'on';
-  //   $_SERVER['HTTP_X_FORWARDED_PROTO'] = 'http';
-  //   $fb = new PersistentETALIOPublic(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET,
-  //   ));
-  //   $this->assertEquals('https', $fb->publicGetHttpProtocol());
-  // }
+  public function testHttpProtocol() {
+    $_SERVER['HTTPS'] = 'on';
+    $_SERVER['HTTP_X_FORWARDED_PROTO'] = 'http';
+    $etalio = new PersistentETALIOPublic(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET,
+    ));
+    $this->assertEquals('https', $etalio->publicGetHttpProtocol());
+  }
 
   // public function testHttpHostForwarded() {
   //   $real = 'foo.com';
   //   $_SERVER['HTTP_HOST'] = 'localhost';
   //   $_SERVER['HTTP_X_FORWARDED_HOST'] = $real;
-  //   $fb = new PersistentETALIOPublic(array(
+  //   $etalio = new PersistentETALIOPublic(array(
   //     'appId'  => self::APP_ID,
   //     'secret' => self::SECRET,
   //     'trustForwarded' => true,
   //   ));
-  //   $this->assertEquals($real, $fb->publicGetHttpHost());
+  //   $this->assertEquals($real, $etalio->publicGetHttpHost());
   // }
 
   // public function testHttpProtocolForwarded() {
   //   $_SERVER['HTTPS'] = 'on';
   //   $_SERVER['HTTP_X_FORWARDED_PROTO'] = 'http';
-  //   $fb = new PersistentETALIOPublic(array(
+  //   $etalio = new PersistentETALIOPublic(array(
   //     'appId'  => self::APP_ID,
   //     'secret' => self::SECRET,
   //     'trustForwarded' => true,
   //   ));
-  //   $this->assertEquals('http', $fb->publicGetHttpProtocol());
+  //   $this->assertEquals('http', $etalio->publicGetHttpProtocol());
   // }
 
-  // public function testHttpProtocolForwardedSecure() {
-  //   $_SERVER['HTTPS'] = 'on';
-  //   $_SERVER['HTTP_X_FORWARDED_PROTO'] = 'https';
-  //   $fb = new PersistentETALIOPublic(array(
-  //     'appId'  => self::APP_ID,
-  //     'secret' => self::SECRET,
-  //     'trustForwarded' => true,
-  //   ));
-  //   $this->assertEquals('https', $fb->publicGetHttpProtocol());
-  // }
+  public function testHttpProtocolForwardedSecure() {
+    $_SERVER['HTTPS'] = 'on';
+    $_SERVER['HTTP_X_FORWARDED_PROTO'] = 'https';
+    $etalio = new PersistentETALIOPublic(array(
+      'appId'  => self::APP_ID,
+      'secret' => self::SECRET,
+      'trustForwarded' => true,
+    ));
+    $this->assertEquals('https', $etalio->publicGetHttpProtocol());
+  }
 
-  // /**
-  //  * @dataProvider provideEndsWith
-  //  */
-  // public function testEndsWith($big, $small, $result) {
-  //   $this->assertEquals(
-  //     $result,
-  //     PersistentETALIOPublic::publicEndsWith($big, $small)
-  //   );
-  // }
+  /**
+   * @dataProvider provideEndsWith
+   */
+  public function testEndsWith($big, $small, $result) {
+    $this->assertEquals(
+      $result,
+      PersistentETALIOPublic::publicEndsWith($big, $small)
+    );
+  }
 
-  // public function provideEndsWith() {
-  //   return array(
-  //     array('', '', true),
-  //     array('', 'a', false),
-  //     array('a', '', true),
-  //     array('a', 'b', false),
-  //     array('a', 'a', true),
-  //     array('aa', 'a', true),
-  //     array('ab', 'a', false),
-  //     array('ba', 'a', true),
-  //   );
-  // }
+  public function provideEndsWith() {
+    return array(
+      array('', '', true),
+      array('', 'a', false),
+      array('a', '', true),
+      array('a', 'b', false),
+      array('a', 'a', true),
+      array('aa', 'a', true),
+      array('ab', 'a', false),
+      array('ba', 'a', true),
+    );
+  }
 
   // /**
   //  * @dataProvider provideIsAllowedDomain
@@ -1922,12 +1847,6 @@ class ETALIOPublic extends TransientEtalio {
   }
   public static function publicBase64UrlEncode($input) {
     return self::base64UrlEncode($input);
-  }
-  public function publicParseSignedRequest($input) {
-    return $this->parseSignedRequest($input);
-  }
-  public function publicMakeSignedRequest($data) {
-    return $this->makeSignedRequest($data);
   }
 }
 
