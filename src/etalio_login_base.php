@@ -1,4 +1,6 @@
 <?php
+require_once('etalio_api_exception.php');
+
 if (!function_exists('curl_init')) {
   throw new Exception('Etalio needs the CURL PHP extension.');
 }
@@ -6,98 +8,15 @@ if (!function_exists('json_decode')) {
   throw new Exception('Etalio needs the JSON PHP extension.');
 }
 
-/**
- * Thrown when an API call returns an exception.
- *
- * @author Naitik Shah <naitik@facebook.com>
- */
-class EtalioApiException extends Exception
-{
-  /**
-   * The result from the API server that represents the exception information.
-   */
-  protected $result;
-
-  /**
-   * Make a new API Exception with the given result.
-   *
-   * @param array $result The result from the API server
-   */
-  public function __construct($result) {
-    $this->result = $result;
-
-    $code = isset($result['error_code']) ? $result['error_code'] : 0;
-
-    if (isset($result['error_description'])) {
-      // OAuth 2.0 Draft 10 style
-      $msg = $result['error_description'];
-    } else if (isset($result['error']) && is_array($result['error'])) {
-      // OAuth 2.0 Draft 00 style
-      $msg = $result['error']['message'];
-    } else if (isset($result['error_msg'])) {
-      // Rest server style
-      $msg = $result['error_msg'];
-    } else {
-      $msg = 'Unknown Error. Check getResult()';
-    }
-
-    parent::__construct($msg, $code);
-  }
-
-  /**
-   * Return the associated result object returned by the API server.
-   *
-   * @return array The result from the API server
-   */
-  public function getResult() {
-    return $this->result;
-  }
-
-  /**
-   * Returns the associated type for the error. This will default to
-   * 'Exception' when a type is not available.
-   *
-   * @return string
-   */
-  public function getType() {
-    if (isset($this->result['error'])) {
-      $error = $this->result['error'];
-      if (is_string($error)) {
-        // OAuth 2.0 Draft 10 style
-        return $error;
-      } else if (is_array($error)) {
-        // OAuth 2.0 Draft 00 style
-        if (isset($error['type'])) {
-          return $error['type'];
-        }
-      }
-    }
-
-    return 'Exception';
-  }
-
-  /**
-   * To make debugging easier.
-   *
-   * @return string The string representation of the error
-   */
-  public function __toString() {
-    $str = $this->getType() . ': ';
-    if ($this->code != 0) {
-      $str .= $this->code . ': ';
-    }
-    return $str . $this->message;
-  }
-}
 
 /**
  * Provides access to the Etalio Platform.  This class provides
- * a majority of the functionality needed, but the class is abstract
+ * a majority of the functionality needed for handshaking, but the class is abstract
  * because it is designed to be sub-classed.  The subclass must
  * implement the four abstract methods listed at the bottom of
  * the file.
  */
-abstract class BaseEtalio
+abstract class EtalioLoginBase
 {
   /**
    * Server Url
@@ -172,18 +91,17 @@ abstract class BaseEtalio
    * The configuration:
    * - appId: the application ID
    * - secret: the application secret
-   * - fileUpload: (optional) boolean indicating if file uploads are enabled
    *
    * @param array $config The application configuration
    */
   public function __construct($config) {
+    //Populate with bare minimum of Etalio functionality, add more in sub classes
     $this->domainMap = array(
       'api'       => self::BASE_URL,
       'www'       => 'http://www.etalio.com',
-      'auth'      => self::BASE_URL . '/oauth2',
+      'oauth2'      => self::BASE_URL . '/oauth2',
       'token'     => self::BASE_URL . '/oauth2/token',
       'profile'   => self::BASE_URL . '/' . self::API_VERSION . '/user',
-      'apps'      => self::BASE_URL . '/' . self::API_VERSION . '/user/applications',
     );
     $this->curlOpts = array(
       CURLOPT_CONNECTTIMEOUT => 10,
@@ -191,6 +109,9 @@ abstract class BaseEtalio
       CURLOPT_TIMEOUT        => 60,
       CURLOPT_USERAGENT      => 'etalio-php-'.self::VERSION,
     );
+    if(!isset($config['appId']) || !isset($config['secret'])) {
+      throw new Exception("Both Application ID and Application secret are mandatory configuration parameters", 1);
+    }
     $this->setAppId($config['appId']);
     $this->setAppSecret($config['secret']);
     $state = $this->getPersistentData('state');
@@ -219,20 +140,11 @@ abstract class BaseEtalio
     return $this->appId;
   }
 
+  /**
+   * Get the flags for CURL
+   */
   public function getCurlOpts() {
     return $this->curlOpts;
-  }
-
-  /**
-   * Set the App Secret.
-   *
-   * @param string $apiSecret The App Secret
-   * @return BaseEtalio
-   * @deprecated Use setAppSecret instead.
-   */
-  public function setApiSecret($apiSecret) {
-    $this->setAppSecret($apiSecret);
-    return $this;
   }
 
   /**
@@ -244,16 +156,6 @@ abstract class BaseEtalio
   public function setAppSecret($appSecret) {
     $this->appSecret = $appSecret;
     return $this;
-  }
-
-  /**
-   * Get the App Secret.
-   *
-   * @return string the App Secret
-   * @deprecated Use getAppSecret instead.
-   */
-  public function getApiSecret() {
-    return $this->getAppSecret();
   }
 
   /**
@@ -282,43 +184,45 @@ abstract class BaseEtalio
    * Extend an access token, while removing the short-lived token that might
    * have been generated via client-side flow. Thanks to http://bit.ly/b0Pt0H
    * for the workaround.
+   *
+   * The method is probably not applicable for Etalio /Mkson
    */
-  public function setExtendedAccessToken() {
-    try {
-      // need to circumvent json_decode by calling _oauthRequest
-      // directly, since response isn't JSON format.
-      $access_token_response = $this->_oauthRequest(
-        $this->getUrl('graph', '/oauth/access_token'),
-        $params = array(
-          'client_id' => $this->getAppId(),
-          'client_secret' => $this->getAppSecret(),
-          'grant_type' => 'authorization_code',
-        )
-      );
-    }
-    catch (EtalioApiException $e) {
-      // most likely that user very recently revoked authorization.
-      // In any event, we don't have an access token, so say so.
-      return false;
-    }
+  // public function setExtendedAccessToken() {
+  //   try {
+  //     // need to circumvent json_decode by calling _oauthRequest
+  //     // directly, since response isn't JSON format.
+  //     $access_token_response = $this->_oauthRequest(
+  //       $this->getUrl('graph', '/oauth/access_token'),
+  //       $params = array(
+  //         'client_id' => $this->getAppId(),
+  //         'client_secret' => $this->getAppSecret(),
+  //         'grant_type' => 'authorization_code',
+  //       )
+  //     );
+  //   }
+  //   catch (EtalioApiException $e) {
+  //     // most likely that user very recently revoked authorization.
+  //     // In any event, we don't have an access token, so say so.
+  //     return false;
+  //   }
 
-    if (empty($access_token_response)) {
-      return false;
-    }
+  //   if (empty($access_token_response)) {
+  //     return false;
+  //   }
 
-    $response_params = array();
-    parse_str($access_token_response, $response_params);
+  //   $response_params = array();
+  //   parse_str($access_token_response, $response_params);
 
-    if (!isset($response_params['access_token'])) {
-      return false;
-    }
+  //   if (!isset($response_params['access_token'])) {
+  //     return false;
+  //   }
 
-    $this->destroySession();
+  //   $this->destroySession();
 
-    $this->setPersistentData(
-      'access_token', $response_params['access_token']
-    );
-  }
+  //   $this->setPersistentData(
+  //     'access_token', $response_params['access_token']
+  //   );
+  // }
 
   /**
    * Determines the access token that should be used for API calls.
@@ -447,7 +351,7 @@ abstract class BaseEtalio
     }
 
     return $this->getUrl(
-      'profile',
+      'oauth2',
       array_merge(
         array(
           'client_id' => $this->getAppId(),
@@ -457,40 +361,6 @@ abstract class BaseEtalio
         ),
         $params
       ));
-  }
-
-  /**
-   * Get a Logout URL suitable for use with redirects.
-   *
-   * The parameters:
-   * - next: the url to go to after a successful logout
-   *
-   * @param array $params Provide custom parameters
-   * @return string The URL for the logout flow
-   */
-  public function getLogoutUrl($params=array()) {
-    return $this->getUrl(
-      'www',
-      array_merge(array(
-        'next' => $this->getCurrentUrl(),
-        'access_token' => $this->getUserAccessToken(),
-      ), $params)
-    );
-  }
-
-  /**
-   * Get a login status URL to fetch the status from Etalio.
-   *
-   * @param array $params Provide custom parameters
-   * @return string The URL for the logout flow
-   */
-  public function getLoginStatusUrl($params=array()) {
-    return $this->getLoginUrl(
-      array_merge(array(
-        'response_type' => 'code',
-        'display' => 'none',
-      ), $params)
-    );
   }
 
   /**
@@ -672,59 +542,6 @@ abstract class BaseEtalio
   }
 
   /**
-   * Return true if this is video post.
-   *
-   * @param string $path The path
-   * @param string $method The http method (default 'GET')
-   *
-   * @return boolean true if this is video post
-   */
-  protected function isVideoPost($path, $method = 'GET') {
-    if ($method == 'POST' && preg_match("/^(\/)(.+)(\/)(videos)$/", $path)) {
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Invoke the Graph API.
-   *
-   * @param string $path The path (required)
-   * @param string $method The http method (default 'GET')
-   * @param array $params The query/post data
-   *
-   * @return mixed The decoded response object
-   * @throws EtalioApiException
-   */
-  protected function _graph($path, $method = 'GET', $params = array()) {
-    if (is_array($method) && empty($params)) {
-      $params = $method;
-      $method = 'GET';
-    }
-    $params['method'] = $method; // method override as we always do a POST
-
-    if ($this->isVideoPost($path, $method)) {
-      $domainKey = 'graph_video';
-    } else {
-      $domainKey = 'graph';
-    }
-
-    $result = json_decode($this->_oauthRequest(
-      $this->getUrl($domainKey, $path),
-      $params
-    ), true);
-
-    // results are returned, errors are thrown
-    if (is_array($result) && isset($result['error'])) {
-      $this->throwAPIException($result);
-      // @codeCoverageIgnoreStart
-    }
-    // @codeCoverageIgnoreEnd
-
-    return $result;
-  }
-
-  /**
    * Make a OAuth Request.
    *
    * @param string $url The path (required)
@@ -845,103 +662,6 @@ abstract class BaseEtalio
     curl_close($ch);
     return $result;
   }
-
-  /**
-   * Makes a signed_request blob using the given data.
-   *
-   * @param array The data array.
-   * @return string The signed request.
-   */
-  // protected function makeSignedRequest($data) {
-  //   if (!is_array($data)) {
-  //     throw new InvalidArgumentException(
-  //       'makeSignedRequest expects an array. Got: ' . print_r($data, true));
-  //   }
-  //   $data['algorithm'] = self::SIGNED_REQUEST_ALGORITHM;
-  //   $data['issued_at'] = time();
-  //   $json = json_encode($data);
-  //   $b64 = self::base64UrlEncode($json);
-  //   $raw_sig = hash_hmac('sha256', $b64, $this->getAppSecret(), $raw = true);
-  //   $sig = self::base64UrlEncode($raw_sig);
-  //   return $sig.'.'.$b64;
-  // }
-
-  /**
-   * Build the URL for api given parameters.
-   *
-   * @param $method String the method name.
-   * @return string The URL for the given parameters
-   */
-  // protected function getApiUrl($method) {
-  //   static $READ_ONLY_CALLS =
-  //     array('admin.getallocation' => 1,
-  //           'admin.getappproperties' => 1,
-  //           'admin.getbannedusers' => 1,
-  //           'admin.getlivestreamvialink' => 1,
-  //           'admin.getmetrics' => 1,
-  //           'admin.getrestrictioninfo' => 1,
-  //           'application.getpublicinfo' => 1,
-  //           'auth.getapppublickey' => 1,
-  //           'auth.getsession' => 1,
-  //           'auth.getsignedpublicsessiondata' => 1,
-  //           'comments.get' => 1,
-  //           'connect.getunconnectedfriendscount' => 1,
-  //           'dashboard.getactivity' => 1,
-  //           'dashboard.getcount' => 1,
-  //           'dashboard.getglobalnews' => 1,
-  //           'dashboard.getnews' => 1,
-  //           'dashboard.multigetcount' => 1,
-  //           'dashboard.multigetnews' => 1,
-  //           'data.getcookies' => 1,
-  //           'events.get' => 1,
-  //           'events.getmembers' => 1,
-  //           'fbml.getcustomtags' => 1,
-  //           'feed.getappfriendstories' => 1,
-  //           'feed.getregisteredtemplatebundlebyid' => 1,
-  //           'feed.getregisteredtemplatebundles' => 1,
-  //           'fql.multiquery' => 1,
-  //           'fql.query' => 1,
-  //           'friends.arefriends' => 1,
-  //           'friends.get' => 1,
-  //           'friends.getappusers' => 1,
-  //           'friends.getlists' => 1,
-  //           'friends.getmutualfriends' => 1,
-  //           'gifts.get' => 1,
-  //           'groups.get' => 1,
-  //           'groups.getmembers' => 1,
-  //           'intl.gettranslations' => 1,
-  //           'links.get' => 1,
-  //           'notes.get' => 1,
-  //           'notifications.get' => 1,
-  //           'pages.getinfo' => 1,
-  //           'pages.isadmin' => 1,
-  //           'pages.isappadded' => 1,
-  //           'pages.isfan' => 1,
-  //           'permissions.checkavailableapiaccess' => 1,
-  //           'permissions.checkgrantedapiaccess' => 1,
-  //           'photos.get' => 1,
-  //           'photos.getalbums' => 1,
-  //           'photos.gettags' => 1,
-  //           'profile.getinfo' => 1,
-  //           'profile.getinfooptions' => 1,
-  //           'stream.get' => 1,
-  //           'stream.getcomments' => 1,
-  //           'stream.getfilters' => 1,
-  //           'users.getinfo' => 1,
-  //           'users.getloggedinuser' => 1,
-  //           'users.getstandardinfo' => 1,
-  //           'users.hasapppermission' => 1,
-  //           'users.isappuser' => 1,
-  //           'users.isverified' => 1,
-  //           'video.getuploadlimits' => 1);
-  //   $name = 'api';
-  //   if (isset($READ_ONLY_CALLS[strtolower($method)])) {
-  //     $name = 'api_read';
-  //   } else if (strtolower($method) == 'video.upload') {
-  //     $name = 'api_video';
-  //   }
-  //   return self::getUrl($name, 'restserver.php');
-  // }
 
   /**
    * Build the URL for given domain alias, path and parameters.

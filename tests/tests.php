@@ -51,23 +51,6 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
                         'Expect the API secret to be set.');
   }
 
-  // public function testConstructorWithFileUpload() {
-  //   $etalio = new TransientEtalio(array(
-  //     'appId'      => self::APP_ID,
-  //     'secret'     => self::SECRET,
-  //     'fileUpload' => true,
-  //   ));
-  //   $this->assertEquals($etalio->getAppId(), self::APP_ID,
-  //                       'Expect the App ID to be set.');
-  //   $this->assertEquals($etalio->getAppSecret(), self::SECRET,
-  //                       'Expect the API secret to be set.');
-  //   $this->assertTrue($etalio->getFileUploadSupport(),
-  //                     'Expect file upload support to be on.');
-  //   // alias (depricated) for getFileUploadSupport -- test until removed
-  //   $this->assertTrue($etalio->useFileUploadSupport(),
-  //                     'Expect file upload support to be on.');
-  // }
-
   public function testSetAppId() {
     $etalio = new TransientEtalio(array(
       'appId'  => self::APP_ID,
@@ -76,16 +59,6 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     $etalio->setAppId('dummy');
     $this->assertEquals($etalio->getAppId(), 'dummy',
                         'Expect the App ID to be dummy.');
-  }
-
-  public function testSetAPISecret() {
-    $etalio = new TransientEtalio(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-    ));
-    $etalio->setApiSecret('dummy');
-    $this->assertEquals($etalio->getApiSecret(), 'dummy',
-                        'Expect the API secret to be dummy.');
   }
 
   public function testSetAPPSecret() {
@@ -175,7 +148,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     $login_url = parse_url($etalio->getLoginUrl());
     $this->assertEquals($login_url['scheme'], 'https');
     $this->assertEquals($login_url['host'], 'api-etalio.3fs.si');
-    $this->assertEquals($login_url['path'], '/v0.0.1/user');
+    $this->assertEquals($login_url['path'], '/oauth2');
     $expected_login_params =
       array('client_id' => self::APP_ID,
             'redirect_uri' => 'https://www.test.com/unit-tests.php');
@@ -202,7 +175,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     $login_url = parse_url($etalio->getLoginUrl($extra_params));
     $this->assertEquals($login_url['scheme'], 'https');
     $this->assertEquals($login_url['host'], 'api-etalio.3fs.si');
-    $this->assertEquals($login_url['path'], '/v0.0.1/user');
+    $this->assertEquals($login_url['path'], '/oauth2');
     $expected_login_params =
       array_merge(
         array('client_id' => self::APP_ID,
@@ -231,7 +204,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     $login_url = parse_url($etalio->getLoginUrl($extra_params));
     $this->assertEquals($login_url['scheme'], 'https');
     $this->assertEquals($login_url['host'], 'api-etalio.3fs.si');
-    $this->assertEquals($login_url['path'], '/v0.0.1/user');
+    $this->assertEquals($login_url['path'], '/oauth2');
     // expect api to flatten array params to comma separated list
     // should do the same here before asserting to make sure API is behaving
     // correctly;
@@ -644,49 +617,36 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
                       'Expect the current url to not exist.');
   }
 
-  public function testLogoutURLDefaults() {
-    $_SERVER['HTTP_HOST'] = 'fbrell.com';
-    $_SERVER['REQUEST_URI'] = '/examples';
-    $etalio = new TransientEtalio(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-    ));
-    $encodedUrl = rawurlencode('http://fbrell.com/examples');
-    $this->assertNotNull(strpos($etalio->getLogoutUrl(), $encodedUrl),
-                         'Expect the current url to exist.');
-    $this->assertFalse(strpos($etalio->getLogoutUrl(), self::SECRET));
-  }
+  // public function testLoginStatusURLDefaults() {
+  //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
+  //   $_SERVER['REQUEST_URI'] = '/examples';
+  //   $etalio = new TransientEtalio(array(
+  //     'appId'  => self::APP_ID,
+  //     'secret' => self::SECRET,
+  //   ));
+  //   $encodedUrl = rawurlencode('http://fbrell.com/examples');
+  //   $this->assertNotNull(strpos($etalio->getLoginStatusUrl(), $encodedUrl),
+  //                        'Expect the current url to exist.');
+  // }
 
-  public function testLoginStatusURLDefaults() {
-    $_SERVER['HTTP_HOST'] = 'fbrell.com';
-    $_SERVER['REQUEST_URI'] = '/examples';
-    $etalio = new TransientEtalio(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-    ));
-    $encodedUrl = rawurlencode('http://fbrell.com/examples');
-    $this->assertNotNull(strpos($etalio->getLoginStatusUrl(), $encodedUrl),
-                         'Expect the current url to exist.');
-  }
-
-  public function testLoginStatusURLCustom() {
-    $_SERVER['HTTP_HOST'] = 'fbrell.com';
-    $_SERVER['REQUEST_URI'] = '/examples';
-    $etalio = new TransientEtalio(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-    ));
-    $encodedUrl1 = rawurlencode('http://fbrell.com/examples');
-    $okUrl = 'http://fbrell.com/here1';
-    $encodedUrl2 = rawurlencode($okUrl);
-    $loginStatusUrl = $etalio->getLoginStatusUrl(array(
-      'ok_session' => $okUrl,
-    ));
-    $this->assertNotNull(strpos($loginStatusUrl, $encodedUrl1),
-                         'Expect the current url to exist.');
-    $this->assertNotNull(strpos($loginStatusUrl, $encodedUrl2),
-                         'Expect the custom url to exist.');
-  }
+  // public function testLoginStatusURLCustom() {
+  //   $_SERVER['HTTP_HOST'] = 'fbrell.com';
+  //   $_SERVER['REQUEST_URI'] = '/examples';
+  //   $etalio = new TransientEtalio(array(
+  //     'appId'  => self::APP_ID,
+  //     'secret' => self::SECRET,
+  //   ));
+  //   $encodedUrl1 = rawurlencode('http://fbrell.com/examples');
+  //   $okUrl = 'http://fbrell.com/here1';
+  //   $encodedUrl2 = rawurlencode($okUrl);
+  //   $loginStatusUrl = $etalio->getLoginStatusUrl(array(
+  //     'ok_session' => $okUrl,
+  //   ));
+  //   $this->assertNotNull(strpos($loginStatusUrl, $encodedUrl1),
+  //                        'Expect the current url to exist.');
+  //   $this->assertNotNull(strpos($loginStatusUrl, $encodedUrl2),
+  //                        'Expect the custom url to exist.');
+  // }
 
   public function testNonDefaultPort() {
     $_SERVER['HTTP_HOST'] = 'fbrell.com:8080';
@@ -1804,7 +1764,7 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
   }
 }
 
-class TransientEtalio extends BaseEtalio {
+class TransientEtalio extends EtalioLoginBase {
   protected function setPersistentData($key, $value) {}
   protected function getPersistentData($key, $default = false) {
     return $default;
@@ -1850,7 +1810,7 @@ class ETALIOPublic extends TransientEtalio {
   }
 }
 
-class PersistentETALIOPublic extends Etalio {
+class PersistentETALIOPublic extends EtalioLogin {
   public function publicParseSignedRequest($input) {
     return $this->parseSignedRequest($input);
   }
@@ -1896,7 +1856,7 @@ class PersistentETALIOPublic extends Etalio {
   }
 }
 
-class ETALIOCode extends Etalio {
+class ETALIOCode extends EtalioLogin {
   public function publicGetCode() {
     return $this->getCode();
   }
@@ -1944,7 +1904,7 @@ class ETALIOPublicCookie extends TransientEtalio {
   }
 }
 
-class ETALIORewrite extends Etalio{
+class ETALIORewrite extends Etalio {
 
   public function uncacheSignedRequest(){
     $this->signedRequest = null;
