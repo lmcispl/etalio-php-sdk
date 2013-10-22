@@ -99,7 +99,7 @@ abstract class EtalioLoginBase
     $this->domainMap = array(
       'api'       => self::BASE_URL,
       'www'       => 'http://www.etalio.com',
-      'oauth2'      => self::BASE_URL . '/oauth2',
+      'oauth2'    => self::BASE_URL . '/oauth2',
       'token'     => self::BASE_URL . '/oauth2/token',
       'profile'   => self::BASE_URL . '/' . self::API_VERSION . '/user',
     );
@@ -354,10 +354,11 @@ abstract class EtalioLoginBase
       'oauth2',
       array_merge(
         array(
-          'client_id' => $this->getAppId(),
-          'redirect_uri' => $currentUrl, // possibly overwritten
-          'state' => $this->state,
-          'sdk' => 'php-sdk-'.self::VERSION,
+          'client_id'     => $this->getAppId(),
+          'redirect_uri'  => $currentUrl, // possibly overwritten
+          'state'         => $this->state,
+          'sdk'           => 'php-sdk-'.self::VERSION,
+          'response_type' => 'code'
         ),
         $params
       ));
