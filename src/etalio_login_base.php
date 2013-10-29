@@ -204,6 +204,8 @@ abstract class EtalioLoginBase
    * @return string The access token
    */
   public function getAccessToken() {
+    if($this->accessToken == null)
+      return $this->getPersistentData('access_token');
     return $this->accessToken;
   }
 
@@ -548,6 +550,10 @@ abstract class EtalioLoginBase
         // @codeCoverageIgnoreEnd
       }
     }
+  }
+
+  protected function getMetadataCookieName() {
+    return 'etalio_'.$this->getAppId();
   }
 
   /**
