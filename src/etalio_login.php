@@ -93,7 +93,7 @@ class EtalioLogin extends EtalioLoginBase
   }
 
   protected function constructSessionVariableName($key) {
-    $parts = array('etalio', $this->getAppId(), $key);
+    $parts = array('etalio', $this->appId, $key);
     if ($this->sharedSessionID) {
       array_unshift($parts, $this->sharedSessionID);
     }

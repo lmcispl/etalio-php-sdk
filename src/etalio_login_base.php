@@ -137,8 +137,9 @@ abstract class EtalioLoginBase
         array(
           'client_id'     => $this->appId,
           'state'         => $this->state,
+          'redirect_uri'  => $this->redirectUri,
           'sdk'           => 'php-sdk-'.self::VERSION,
-          'response_type' => 'code'
+          'response_type' => 'code',
         ),
         $params
       ));
@@ -148,17 +149,10 @@ abstract class EtalioLoginBase
    * AuthenticateUser, the main entry for the handshake
    */
   public function authenticateUser($params=[]) {
-    $config =  array_merge([
-        'appId' => $this->appId,
-        'secret' => $this->appSecret,
-        'state' => $this->state,
-      ],$params);
-    if(!isset($config['appId']) || !isset($config['secret'])) {
-      throw new Exception("Both Application ID and Application secret are mandatory configuration parameters", 1);
+    if(!isset($this->accessToken)) {
+      return $this->getUserAccessToken();
     }
-    if(!isset($access_token)) {
-      return getAccessTokenFromCode();
-    }
+    return $this->accessToken;
   }
 
   /**
@@ -214,50 +208,6 @@ abstract class EtalioLoginBase
   }
 
   /**
-   * Extend an access token, while removing the short-lived token that might
-   * have been generated via client-side flow. Thanks to http://bit.ly/b0Pt0H
-   * for the workaround.
-   *
-   * The method is probably not applicable for Etalio /Mkson
-   */
-  // public function setExtendedAccessToken() {
-  //   try {
-  //     // need to circumvent json_decode by calling _oauthRequest
-  //     // directly, since response isn't JSON format.
-  //     $access_token_response = $this->_oauthRequest(
-  //       $this->getUrl('graph', '/oauth/access_token'),
-  //       $params = array(
-  //         'client_id' => $this->getAppId(),
-  //         'client_secret' => $this->getAppSecret(),
-  //         'grant_type' => 'authorization_code',
-  //       )
-  //     );
-  //   }
-  //   catch (EtalioApiException $e) {
-  //     // most likely that user very recently revoked authorization.
-  //     // In any event, we don't have an access token, so say so.
-  //     return false;
-  //   }
-
-  //   if (empty($access_token_response)) {
-  //     return false;
-  //   }
-
-  //   $response_params = array();
-  //   parse_str($access_token_response, $response_params);
-
-  //   if (!isset($response_params['access_token'])) {
-  //     return false;
-  //   }
-
-  //   $this->destroySession();
-
-  //   $this->setPersistentData(
-  //     'access_token', $response_params['access_token']
-  //   );
-  // }
-
-  /**
    * Determines and returns the user access token, first using
    * the signed request if present, and then falling back on
    * the authorization code if present.  The intent is to
@@ -274,7 +224,7 @@ abstract class EtalioLoginBase
       if ($access_token) {
         $this->setPersistentData('code', $code);
         $this->setPersistentData('access_token', $access_token);
-        $this->accessToken = $access_token
+        $this->accessToken = $access_token;
         return $access_token;
       }
       // code was bogus, so everything based on it should be invalidated.
@@ -284,61 +234,6 @@ abstract class EtalioLoginBase
     return $this->accessToken;
   }
 
-  /**
-   * Get the UID of the connected user, or 0
-   * if the Etalio user is not connected.
-   *
-   * @return string the UID if available.
-   */
-  public function getUser() {
-    if ($this->user !== null) {
-      // we've already determined this and cached the value.
-      return $this->user;
-    }
-
-    return $this->user = $this->getUserFromAvailableData();
-  }
-
-  /**
-   * Determines the connected user by first examining any signed
-   * requests, then considering an authorization code, and then
-   * falling back to any persistent store storing the user.
-   *
-   * @return integer The id of the connected Etalio user,
-   *                 or 0 if no such user exists.
-   */
-  protected function getUserFromAvailableData() {
-
-    $user = $this->getPersistentData('user_id', $default = 0);
-    $persisted_access_token = $this->getPersistentData('access_token');
-
-    // use access_token to fetch user id if we have a user access_token, or if
-    // the cached access token has changed.
-    $access_token = $this->getAccessToken();
-    if ($access_token &&
-        $access_token != $this->getApplicationAccessToken() &&
-        !($user && $persisted_access_token == $access_token)) {
-      $user = $this->getUserFromAccessToken();
-      if ($user) {
-        $this->setPersistentData('user_id', $user);
-      } else {
-        $this->clearAllPersistentData();
-      }
-    }
-
-    return $user;
-  }
-
-  /**
-   * Constructs and returns the name of the coookie that potentially contain
-   * metadata. The cookie is not set by the BaseEtalio class, but it may be
-   * set by the JavaScript SDK.
-   *
-   * @return string the name of the cookie that would house metadata.
-   */
-  protected function getMetadataCookieName() {
-    return 'etalio_'.$this->getAppId();
-  }
 
   /**
    * Get the authorization code from the query parameters, if it exists,
@@ -368,36 +263,6 @@ abstract class EtalioLoginBase
   }
 
   /**
-   * Retrieves the UID with the understanding that
-   * $this->accessToken has already been set and is
-   * seemingly legitimate.  It relies on Etalio's Graph API
-   * to retrieve user information and then extract
-   * the user ID.
-   *
-   * @return integer Returns the UID of the Etalio user, or 0
-   *                 if the Etalio user could not be determined.
-   */
-  protected function getUserFromAccessToken() {
-    try {
-      $user_info = $this->api('/me');
-      return $user_info['id'];
-    } catch (EtalioApiException $e) {
-      return 0;
-    }
-  }
-
-  /**
-   * Returns the access token that should be used for logged out
-   * users when no authorization code is available.
-   *
-   * @return string The application access token, useful for gathering
-   *                public information about users and applications.
-   */
-  //public function getApplicationAccessToken() {
-  //  return $this->appId.'|'.$this->appSecret;
-  //}
-
-  /**
    * Lays down a CSRF state token for this process.
    *
    * @return void
@@ -409,18 +274,6 @@ abstract class EtalioLoginBase
     }
   }
 
-  /**
-   * Retrieves an access token for the given authorization code
-   * (previously generated from www.etalio.com on behalf of
-   * a specific user).  The authorization code is sent to graph.etalio.com
-   * and a legitimate access token is generated provided the access token
-   * and the user for which it was generated all match, and the user is
-   * either logged in to Etalio or has granted an offline access permission.
-   *
-   * @param string $code An authorization code.
-   * @return mixed An access token exchanged for the authorization code, or
-   *               false if an access token could not be generated.
-   */
   protected function getAccessTokenFromCode($code) {
     if (empty($code)) {
       return false;
@@ -432,9 +285,9 @@ abstract class EtalioLoginBase
       $access_token_response =
         $this->_oauthRequest(
           $this->getUrl('token'),
-          $params = array('client_id' => $this->getAppId(),
-                          'client_secret' => $this->getAppSecret(),
-                          'redirect_uri' => $this->getRedirectUri(),
+          $params = array('client_id' => $this->appId,
+                          'client_secret' => $this->appSecret,
+                          'redirect_uri' => $this->redirectUri,
                           'grant_type' => 'authorization_code',
                           'code' => $code));
     } catch (EtalioApiException $e) {
@@ -447,12 +300,11 @@ abstract class EtalioLoginBase
       return false;
     }
 
-    $response_params = array();
-    parse_str($access_token_response, $response_params);
-    if (!isset($response_params['access_token'])) {
+    $response_params = json_decode($access_token_response,true);
+    $accessToken = $response_params['access_token'];
+    if (!isset($accessToken)) {
       return false;
     }
-
     return $response_params['access_token'];
   }
 
@@ -470,10 +322,6 @@ abstract class EtalioLoginBase
       $params['access_token'] = $this->getAccessToken();
     }
 
-    if (isset($params['access_token'])) {
-      $params['appsecret_proof'] = $this->getAppSecretProof($params['access_token']);
-    }
-
     // json_encode all params values that are not strings
     foreach ($params as $key => $value) {
       if (!is_string($value)) {
@@ -481,19 +329,6 @@ abstract class EtalioLoginBase
       }
     }
     return $this->makeRequest($url, $params);
-  }
-
-  /**
-   * Generate a proof of App Secret
-   * This is required for all API calls originating from a server
-   * It is a sha256 hash of the access_token made using the app secret
-   *
-   * @param string $access_token The access_token to be hashed (required)
-   *
-   * @return string The sha256 hash of the access_token
-   */
-  protected function getAppSecretProof($access_token) {
-    return hash_hmac('sha256', $access_token, $this->getAppSecret());
   }
 
   /**
@@ -511,7 +346,7 @@ abstract class EtalioLoginBase
     if (!$ch) {
       $ch = curl_init();
     }
-    $opts = $this->getCurlOpts();
+    $opts = $this->curlOpts;
     $opts[CURLOPT_POSTFIELDS] = http_build_query($params, null, '&');
     $opts[CURLOPT_URL] = $url;
 
@@ -609,27 +444,6 @@ abstract class EtalioLoginBase
       return trim($metadata['base_domain'], '.');
     }
     return $this->getHttpHost();
-  }
-
-  /**
-   * Returns true if and only if the key or key/value pair should
-   * be retained as part of the query string.  This amounts to
-   * a brute-force search of the very small list of Etalio-specific
-   * params that should be stripped out.
-   *
-   * @param string $param A key or key/value pair within a URL's query (e.g.
-   *                     'foo=a', 'foo=', or 'foo'.
-   *
-   * @return boolean
-   */
-  protected function shouldRetainParam($param) {
-    foreach (self::$DROP_QUERY_PARAMS as $drop_query_param) {
-      if (strpos($param, $drop_query_param.'=') === 0) {
-        return false;
-      }
-    }
-
-    return true;
   }
 
   /**
@@ -765,13 +579,6 @@ abstract class EtalioLoginBase
     }
 
     return $metadata;
-  }
-
-  protected static function isAllowedDomain($big, $small) {
-    if ($big === $small) {
-      return true;
-    }
-    return self::endsWith($big, '.'.$small);
   }
 
   protected static function endsWith($big, $small) {
