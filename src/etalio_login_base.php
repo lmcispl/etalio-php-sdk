@@ -34,15 +34,6 @@ abstract class EtalioLoginBase
   const VERSION = '0.1.0';
 
   /**
-   * List of query parameters that get automatically dropped when rebuilding
-   * the current URL.
-   */
-  protected static $DROP_QUERY_PARAMS = array(
-    'code',
-    'state',
-  );
-
-  /**
    * Default options for curl.
    */
   protected $curlOpts;
@@ -80,10 +71,10 @@ abstract class EtalioLoginBase
   /**
    * The OAuth access token received in exchange for a valid authorization
    * code.  null means the access token has yet to be determined.
-   *
-   * @var string
    */
-  protected $accessToken = null;
+  protected $accessToken;
+  protected $refreshToken;
+  protected $redirectUri;
 
   /**
    * Initialize a Etalio Application.
@@ -109,14 +100,64 @@ abstract class EtalioLoginBase
       CURLOPT_TIMEOUT        => 60,
       CURLOPT_USERAGENT      => 'etalio-php-'.self::VERSION,
     );
-    if(!isset($config['appId']) || !isset($config['secret'])) {
-      throw new Exception("Both Application ID and Application secret are mandatory configuration parameters", 1);
-    }
+    $this->setRedirectUri($config['redirect_uri']);
     $this->setAppId($config['appId']);
     $this->setAppSecret($config['secret']);
     $state = $this->getPersistentData('state');
+    $accessToken = $this->getPersistentData('access_token');
+    $refreshToken = $this->getPersistentData('refreshToken');
     if (!empty($state)) {
       $this->state = $state;
+    }
+  }
+
+  /**
+   * Get a Login URL for use with redirects. By default, full page redirect is
+   * assumed. If you are using the generated URL with a window.open() call in
+   * JavaScript, you can pass in display=popup as part of the $params.
+   *
+   * The parameters:
+   * - redirect_uri: the url to go to after a successful login
+   * - scope: comma separated list of requested extended perms
+   *
+   * @param array $params Provide custom parameters
+   * @return string The URL for the login flow
+   */
+  public function getLoginUrl($params=[]) {
+    $this->establishCSRFTokenState();
+    // if 'scope' is passed as an array, convert to comma separated list
+    $scopeParams = isset($params['scope']) ? $params['scope'] : null;
+    if ($scopeParams && is_array($scopeParams)) {
+      $params['scope'] = implode(',', $scopeParams);
+    }
+
+    return $this->getUrl(
+      'oauth2',
+      array_merge(
+        array(
+          'client_id'     => $this->appId,
+          'state'         => $this->state,
+          'sdk'           => 'php-sdk-'.self::VERSION,
+          'response_type' => 'code'
+        ),
+        $params
+      ));
+  }
+
+  /**
+   * AuthenticateUser, the main entry for the handshake
+   */
+  public function authenticateUser($params=[]) {
+    $config =  array_merge([
+        'appId' => $this->appId,
+        'secret' => $this->appSecret,
+        'state' => $this->state,
+      ],$params);
+    if(!isset($config['appId']) || !isset($config['secret'])) {
+      throw new Exception("Both Application ID and Application secret are mandatory configuration parameters", 1);
+    }
+    if(!isset($access_token)) {
+      return getAccessTokenFromCode();
     }
   }
 
@@ -124,7 +165,7 @@ abstract class EtalioLoginBase
    * Set the Application ID.
    *
    * @param string $appId The Application ID
-   * @return BaseEtalio
+   * @return EtalioLoginBase
    */
   public function setAppId($appId) {
     $this->appId = $appId;
@@ -132,26 +173,20 @@ abstract class EtalioLoginBase
   }
 
   /**
-   * Get the Application ID.
-   *
-   * @return string the Application ID
+   * Set the parameters that Curl will use
+   * @param array $val The configuration options for curl
+   * @return EtalioLoginBase
    */
-  public function getAppId() {
-    return $this->appId;
-  }
-
-  /**
-   * Get the flags for CURL
-   */
-  public function getCurlOpts() {
-    return $this->curlOpts;
+  public function setCurlOpts($val) {
+    $this->curlOpts = $val;
+    return $this;
   }
 
   /**
    * Set the App Secret.
    *
    * @param string $appSecret The App Secret
-   * @return BaseEtalio
+   * @return EtalioLoginBase
    */
   public function setAppSecret($appSecret) {
     $this->appSecret = $appSecret;
@@ -159,25 +194,23 @@ abstract class EtalioLoginBase
   }
 
   /**
-   * Get the App Secret.
+   * Set the redirect uri
    *
-   * @return string the App Secret
+   * @param string $uri the redirect uri
+   * @return EtalioLoginBase
    */
-  public function getAppSecret() {
-    return $this->appSecret;
+  public function setRedirectUri($uri) {
+    $this->redirectUri = $uri;
+    return $this;
   }
 
   /**
-   * Sets the access token for api calls.  Use this if you get
-   * your access token by other means and just want the SDK
-   * to use it.
+   * Determines the access token that should be used for API calls.
    *
-   * @param string $access_token an access token.
-   * @return BaseEtalio
+   * @return string The access token
    */
-  public function setAccessToken($access_token) {
-    $this->accessToken = $access_token;
-    return $this;
+  public function getAccessToken() {
+    return $this->accessToken;
   }
 
   /**
@@ -225,33 +258,6 @@ abstract class EtalioLoginBase
   // }
 
   /**
-   * Determines the access token that should be used for API calls.
-   * The first time this is called, $this->accessToken is set equal
-   * to either a valid user access token, or it's set to the application
-   * access token if a valid user access token wasn't available.  Subsequent
-   * calls return whatever the first call returned.
-   *
-   * @return string The access token
-   */
-  public function getAccessToken() {
-    if ($this->accessToken !== null) {
-      // we've done this already and cached it.  Just return.
-      return $this->accessToken;
-    }
-
-    // first establish access token to be the application
-    // access token, in case we navigate to the /oauth/access_token
-    // endpoint, where SOME access token is required.
-    $this->setAccessToken($this->getApplicationAccessToken());
-    $user_access_token = $this->getUserAccessToken();
-    if ($user_access_token) {
-      $this->setAccessToken($user_access_token);
-    }
-
-    return $this->accessToken;
-  }
-
-  /**
    * Determines and returns the user access token, first using
    * the signed request if present, and then falling back on
    * the authorization code if present.  The intent is to
@@ -268,19 +274,14 @@ abstract class EtalioLoginBase
       if ($access_token) {
         $this->setPersistentData('code', $code);
         $this->setPersistentData('access_token', $access_token);
+        $this->accessToken = $access_token
         return $access_token;
       }
-
       // code was bogus, so everything based on it should be invalidated.
       $this->clearAllPersistentData();
       return false;
     }
-
-    // as a fallback, just return whatever is in the persistent
-    // store, knowing nothing explicit (signed request, authorization
-    // code, etc.) was present to shadow it (or we saw a code in $_REQUEST,
-    // but it's the same as what's in the persistent store)
-    return $this->getPersistentData('access_token');
+    return $this->accessToken;
   }
 
   /**
@@ -329,56 +330,6 @@ abstract class EtalioLoginBase
   }
 
   /**
-   * Get a Login URL for use with redirects. By default, full page redirect is
-   * assumed. If you are using the generated URL with a window.open() call in
-   * JavaScript, you can pass in display=popup as part of the $params.
-   *
-   * The parameters:
-   * - redirect_uri: the url to go to after a successful login
-   * - scope: comma separated list of requested extended perms
-   *
-   * @param array $params Provide custom parameters
-   * @return string The URL for the login flow
-   */
-  public function getLoginUrl($params=array()) {
-    $this->establishCSRFTokenState();
-    $currentUrl = $this->getCurrentUrl();
-
-    // if 'scope' is passed as an array, convert to comma separated list
-    $scopeParams = isset($params['scope']) ? $params['scope'] : null;
-    if ($scopeParams && is_array($scopeParams)) {
-      $params['scope'] = implode(',', $scopeParams);
-    }
-
-    return $this->getUrl(
-      'oauth2',
-      array_merge(
-        array(
-          'client_id'     => $this->getAppId(),
-          'redirect_uri'  => $currentUrl, // possibly overwritten
-          'state'         => $this->state,
-          'sdk'           => 'php-sdk-'.self::VERSION,
-          'response_type' => 'code'
-        ),
-        $params
-      ));
-  }
-
-  /**
-   * Make an API call.
-   *
-   * @return mixed The decoded response
-   */
-  public function api(/* polymorphic */) {
-    $args = func_get_args();
-    if (is_array($args[0])) {
-      return $this->_restserver($args[0]);
-    } else {
-      return call_user_func_array(array($this, 'profile'), $args);
-    }
-  }
-
-  /**
    * Constructs and returns the name of the coookie that potentially contain
    * metadata. The cookie is not set by the BaseEtalio class, but it may be
    * set by the JavaScript SDK.
@@ -386,7 +337,7 @@ abstract class EtalioLoginBase
    * @return string the name of the cookie that would house metadata.
    */
   protected function getMetadataCookieName() {
-    return 'fbm_'.$this->getAppId();
+    return 'etalio_'.$this->getAppId();
   }
 
   /**
@@ -442,9 +393,9 @@ abstract class EtalioLoginBase
    * @return string The application access token, useful for gathering
    *                public information about users and applications.
    */
-  public function getApplicationAccessToken() {
-    return $this->appId.'|'.$this->appSecret;
-  }
+  //public function getApplicationAccessToken() {
+  //  return $this->appId.'|'.$this->appSecret;
+  //}
 
   /**
    * Lays down a CSRF state token for this process.
@@ -470,13 +421,9 @@ abstract class EtalioLoginBase
    * @return mixed An access token exchanged for the authorization code, or
    *               false if an access token could not be generated.
    */
-  protected function getAccessTokenFromCode($code, $redirect_uri = null) {
+  protected function getAccessTokenFromCode($code) {
     if (empty($code)) {
       return false;
-    }
-
-    if ($redirect_uri === null) {
-      $redirect_uri = $this->getCurrentUrl();
     }
 
     try {
@@ -484,10 +431,10 @@ abstract class EtalioLoginBase
       // directly, since response isn't JSON format.
       $access_token_response =
         $this->_oauthRequest(
-          $this->getUrl('graph', '/oauth/access_token'),
+          $this->getUrl('token'),
           $params = array('client_id' => $this->getAppId(),
                           'client_secret' => $this->getAppSecret(),
-                          'redirect_uri' => $redirect_uri,
+                          'redirect_uri' => $this->getRedirectUri(),
                           'code' => $code));
     } catch (EtalioApiException $e) {
       // most likely that user very recently revoked authorization.
@@ -506,40 +453,6 @@ abstract class EtalioLoginBase
     }
 
     return $response_params['access_token'];
-  }
-
-  /**
-   * Invoke the old restserver.php endpoint.
-   *
-   * @param array $params Method call object
-   *
-   * @return mixed The decoded response object
-   * @throws EtalioApiException
-   */
-  protected function _restserver($params) {
-    // generic application level parameters
-    $params['api_key'] = $this->getAppId();
-    $params['format'] = 'json-strings';
-
-    $result = json_decode($this->_oauthRequest(
-      $this->getApiUrl($params['method']),
-      $params
-    ), true);
-
-    // results are returned, errors are thrown
-    if (is_array($result) && isset($result['error_code'])) {
-      $this->throwAPIException($result);
-      // @codeCoverageIgnoreStart
-    }
-    // @codeCoverageIgnoreEnd
-
-    $method = strtolower($params['method']);
-    if ($method === 'auth.expiresession' ||
-        $method === 'auth.revokeauthorization') {
-      $this->destroySession();
-    }
-
-    return $result;
   }
 
   /**
@@ -701,43 +614,6 @@ abstract class EtalioLoginBase
       return trim($metadata['base_domain'], '.');
     }
     return $this->getHttpHost();
-  }
-
-  /**
-   * Returns the Current URL, stripping it of known ETALIO parameters that should
-   * not persist.
-   *
-   * @return string The current URL
-   */
-  protected function getCurrentUrl() {
-    $protocol = 'https://';
-    $host = $this->getHttpHost();
-    $currentUrl = $protocol.$host.$_SERVER['REQUEST_URI'];
-    $parts = parse_url($currentUrl);
-
-    $query = '';
-    if (!empty($parts['query'])) {
-      // drop known fb params
-      $params = explode('&', $parts['query']);
-      $retained_params = array();
-      foreach ($params as $param) {
-        if ($this->shouldRetainParam($param)) {
-          $retained_params[] = $param;
-        }
-      }
-
-      if (!empty($retained_params)) {
-        $query = '?'.implode($retained_params, '&');
-      }
-    }
-
-    // use port if non default
-    $port =
-      isset($parts['port']) && ($protocol === 'https://' && $parts['port'] !== 443)
-      ? ':' . $parts['port'] : '';
-
-    // rebuild
-    return $protocol . $parts['host'] . $port . $parts['path'] . $query;
   }
 
   /**
