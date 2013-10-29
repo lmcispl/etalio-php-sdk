@@ -435,6 +435,7 @@ abstract class EtalioLoginBase
           $params = array('client_id' => $this->getAppId(),
                           'client_secret' => $this->getAppSecret(),
                           'redirect_uri' => $this->getRedirectUri(),
+                          'grant_type' => 'authorization_code',
                           'code' => $code));
     } catch (EtalioApiException $e) {
       // most likely that user very recently revoked authorization.
@@ -479,7 +480,6 @@ abstract class EtalioLoginBase
         $params[$key] = json_encode($value);
       }
     }
-
     return $this->makeRequest($url, $params);
   }
 
@@ -511,13 +511,8 @@ abstract class EtalioLoginBase
     if (!$ch) {
       $ch = curl_init();
     }
-
-    $opts = self::$curlOpts;
-    if ($this->getFileUploadSupport()) {
-      $opts[CURLOPT_POSTFIELDS] = $params;
-    } else {
-      $opts[CURLOPT_POSTFIELDS] = http_build_query($params, null, '&');
-    }
+    $opts = $this->getCurlOpts();
+    $opts[CURLOPT_POSTFIELDS] = http_build_query($params, null, '&');
     $opts[CURLOPT_URL] = $url;
 
     // disable the 'Expect: 100-continue' behaviour. This causes CURL to wait
