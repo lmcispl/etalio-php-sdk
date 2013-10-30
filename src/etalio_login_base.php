@@ -321,10 +321,12 @@ abstract class EtalioLoginBase
       $access_token_response =
         $this->_oauthRequest(
           $this->getUrl('token'),
-          $params = array('client_id' => $this->appId,
-                          'client_secret' => $this->appSecret,
-                          'redirect_uri' => $this->redirectUri,
-                          'grant_type' => 'refresh_token'));
+          $params = array(
+            // 'client_id' => $this->appId,
+            // 'client_secret' => $this->appSecret,
+            // 'redirect_uri' => $this->redirectUri,
+            'refresh_token' => $this->refreshToken,
+            'grant_type' => 'refresh_token'));
     } catch (EtalioApiException $e) {
       // most likely that user very recently revoked authorization.
       // In any event, we don't have an access token, so say so.
@@ -367,6 +369,26 @@ abstract class EtalioLoginBase
     return $this->makeRequest($url, $params);
   }
 
+  protected function apiCall($path, $method = 'POST', $params = []) {
+    if (is_array($method) && empty($params)) {
+      $params = $method;
+      $method = 'POST';
+    }
+    $params['method'] = $method; // method override as we always do a POST
+    $params['Authentication'] = "Bearer ".$this->getAccessToken();
+    var_dump($this->getUrl($path, $params));
+    $result = json_decode($this->_oauthRequest(
+      $this->getUrl($path, $params),
+      $params
+    ), true);
+
+    // results are returned, errors are thrown
+    if (is_array($result) && isset($result['error'])) {
+      $this->throwAPIException($result);
+    }
+    return $result;
+  }
+
   /**
    * Makes an HTTP request. This method can be overridden by subclasses if
    * developers want to do fancier things or use something other than curl to
@@ -395,7 +417,7 @@ abstract class EtalioLoginBase
     } else {
       $opts[CURLOPT_HTTPHEADER] = array('Expect:');
     }
-
+    var_dump($opts);
     curl_setopt_array($ch, $opts);
     $result = curl_exec($ch);
 
