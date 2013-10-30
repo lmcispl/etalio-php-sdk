@@ -26,12 +26,12 @@ abstract class EtalioLoginBase
   /**
    * APi version
    */
-  const API_VERSION = "v0.0.1";
+  const API_VERSION = "v1";
 
   /**
    * Version of this SDK
    */
-  const VERSION = '0.1.0';
+  const VERSION = '0.2.1';
 
   /**
    * Default options for curl.
@@ -55,13 +55,6 @@ abstract class EtalioLoginBase
    * @var string
    */
   protected $appSecret;
-
-  /**
-   * The ID of the Etalio user, or 0 if the user is logged out.
-   *
-   * @var integer
-   */
-  protected $user;
 
   /**
    * A CSRF state variable to assist in the defense against CSRF attacks.
@@ -92,7 +85,6 @@ abstract class EtalioLoginBase
       'www'       => 'http://www.etalio.com',
       'oauth2'    => self::BASE_URL . '/oauth2',
       'token'     => self::BASE_URL . '/oauth2/token',
-      'profile'   => self::BASE_URL . '/' . self::API_VERSION . '/user',
     );
     $this->curlOpts = array(
       CURLOPT_CONNECTTIMEOUT => 10,
@@ -105,7 +97,7 @@ abstract class EtalioLoginBase
     $this->setAppSecret($config['secret']);
     $state = $this->getPersistentData('state');
     $accessToken = $this->getPersistentData('access_token');
-    $refreshToken = $this->getPersistentData('refreshToken');
+    $refreshToken = $this->getPersistentData('refresh_token');
     if (!empty($state)) {
       $this->state = $state;
     }
@@ -148,9 +140,11 @@ abstract class EtalioLoginBase
   /**
    * AuthenticateUser, the main entry for the handshake
    */
-  public function authenticateUser($params=[]) {
-    if(!isset($this->accessToken)) {
-      return $this->getUserAccessToken();
+  public function authenticateUser() {
+    if(!isset($this->accessToken) && !isset($this->refresh_token)) {
+      return $this->getAccessTokenFromCode();
+    } elseif (isset($this->refreshToken)) {
+      return $this->refreshAccessToken();
     }
     return $this->accessToken;
   }
@@ -209,6 +203,15 @@ abstract class EtalioLoginBase
     return $this->accessToken;
   }
 
+  protected function setRefreshToken($token) {
+    $this->refreshToken = $token;
+    $this->setPersistentData('refresh_token',$token);
+  }
+  protected function setAccessToken($token) {
+    $this->accessToken = $token;
+    $this->setPersistentData('access_token',$token);
+  }
+
   /**
    * Determines and returns the user access token, first using
    * the signed request if present, and then falling back on
@@ -219,10 +222,10 @@ abstract class EtalioLoginBase
    * @return string A valid user access token, or false if one
    *                could not be determined.
    */
-  protected function getUserAccessToken() {
-    $code = $this->getCode();
+  protected function getAccessTokenFromCode() {
+    $code = $this->getCodeFromRequest();
     if ($code && $code != $this->getPersistentData('code')) {
-      $access_token = $this->getAccessTokenFromCode($code);
+      $access_token = $this->requestAccessTokenFromCode($code);
       if ($access_token) {
         $this->setPersistentData('code', $code);
         $this->setPersistentData('access_token', $access_token);
@@ -245,7 +248,7 @@ abstract class EtalioLoginBase
    * @return mixed The authorization code, or false if the authorization
    *               code could not be determined.
    */
-  protected function getCode() {
+  protected function getCodeFromRequest() {
     if (isset($_REQUEST['code'])) {
       if ($this->state !== null &&
           isset($_REQUEST['state']) &&
@@ -276,7 +279,7 @@ abstract class EtalioLoginBase
     }
   }
 
-  protected function getAccessTokenFromCode($code) {
+  protected function requestAccessTokenFromCode($code) {
     if (empty($code)) {
       return false;
     }
@@ -307,7 +310,38 @@ abstract class EtalioLoginBase
     if (!isset($accessToken)) {
       return false;
     }
-    return $response_params['access_token'];
+    $this->setRefreshToken($response_params['refresh_token']);
+    return $accessToken;
+  }
+
+  protected function refreshAccessToken() {
+    try {
+      // need to circumvent json_decode by calling _oauthRequest
+      // directly, since response isn't JSON format.
+      $access_token_response =
+        $this->_oauthRequest(
+          $this->getUrl('token'),
+          $params = array('client_id' => $this->appId,
+                          'client_secret' => $this->appSecret,
+                          'redirect_uri' => $this->redirectUri,
+                          'grant_type' => 'refresh_token'));
+    } catch (EtalioApiException $e) {
+      // most likely that user very recently revoked authorization.
+      // In any event, we don't have an access token, so say so.
+      return false;
+    }
+
+    if (empty($access_token_response)) {
+      return false;
+    }
+
+    $response_params = json_decode($access_token_response,true);
+    $accessToken = $response_params['access_token'];
+    if (!isset($accessToken)) {
+      return false;
+    }
+    $this->setRefreshToken($response_params['refresh_token']);
+    return $accessToken;
   }
 
   /**

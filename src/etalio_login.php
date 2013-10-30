@@ -14,7 +14,7 @@ class EtalioLogin extends EtalioLoginBase
   const ETALIOSS_COOKIE_EXPIRE = 31556926; // 1 year
 
   // Keys we support to store in the persistent data
-  protected static $kSupportedKeys = array('state', 'code', 'access_token', 'user_id');
+  protected static $kSupportedKeys = array('state', 'code', 'access_token', 'user_id', 'refresh_token');
 
   // Stores the shared session ID if one is set.
   protected $sharedSessionID;
@@ -41,7 +41,7 @@ class EtalioLogin extends EtalioLoginBase
    */
   protected function setPersistentData($key, $value) {
     if (!in_array($key, self::$kSupportedKeys)) {
-      self::errorLog('Unsupported key passed to setPersistentData.');
+      self::errorLog('Unsupported key passed to setPersistentData: '.$key);
       return;
     }
 
@@ -51,7 +51,7 @@ class EtalioLogin extends EtalioLoginBase
 
   protected function getPersistentData($key, $default = false) {
     if (!in_array($key, self::$kSupportedKeys)) {
-      self::errorLog('Unsupported key passed to getPersistentData.');
+      self::errorLog('Unsupported key passed to getPersistentData:'.$key);
       return $default;
     }
 
@@ -62,7 +62,7 @@ class EtalioLogin extends EtalioLoginBase
 
   protected function clearPersistentData($key) {
     if (!in_array($key, self::$kSupportedKeys)) {
-      self::errorLog('Unsupported key passed to clearPersistentData.');
+      self::errorLog('Unsupported key passed to clearPersistentData:'.$key);
       return;
     }
 

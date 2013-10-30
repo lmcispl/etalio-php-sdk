@@ -418,9 +418,9 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
       'secret' => self::SECRET,
       'redirect_uri' => self::REDIRECT_URI,
     ));
-    $this->assertFalse($etalio->publicGetAccessTokenFromCode(''));
-    $this->assertFalse($etalio->publicGetAccessTokenFromCode(null));
-    $this->assertFalse($etalio->publicGetAccessTokenFromCode(false));
+    $this->assertFalse($etalio->publicRequestAccessTokenFromCode(''));
+    $this->assertFalse($etalio->publicRequestAccessTokenFromCode(null));
+    $this->assertFalse($etalio->publicRequestAccessTokenFromCode(false));
   }
 
 
@@ -799,7 +799,7 @@ class PersistentETALIOPublic extends EtalioLogin {
 
 class ETALIOCode extends EtalioLogin {
   public function publicGetCode() {
-    return $this->getCode();
+    return $this->getCodeFromRequest();
   }
 
   public function publicGetState() {
@@ -861,8 +861,8 @@ class ETALIORewrite extends Etalio {
 
 
 class ETALIOPublicGetAccessTokenFromCode extends TransientEtalio {
-  public function publicGetAccessTokenFromCode($code, $redirect_uri = null) {
-    return $this->getAccessTokenFromCode($code, $redirect_uri);
+  public function publicRequestAccessTokenFromCode($code, $redirect_uri = null) {
+    return $this->requestAccessTokenFromCode($code, $redirect_uri);
   }
 }
 
