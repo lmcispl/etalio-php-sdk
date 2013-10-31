@@ -91,6 +91,7 @@ abstract class EtalioLoginBase
       CURLOPT_RETURNTRANSFER => true,
       CURLOPT_TIMEOUT        => 60,
       CURLOPT_USERAGENT      => 'etalio-php-'.self::VERSION,
+      CURLOPT_VERBOSE        => $config['debug'],
     );
     $this->setRedirectUri($config['redirect_uri']);
     $this->setAppId($config['appId']);
@@ -147,6 +148,32 @@ abstract class EtalioLoginBase
       return $this->refreshAccessToken();
     }
     return $this->accessToken;
+  }
+
+
+  public function apiCall($path, $method = 'GET', $params = [], $headers = []) {
+    if (is_array($method) && empty($params)) {
+      $params = $method;
+      $method = 'GET';
+    }
+    // json_encode all params values that are not strings
+    foreach ($params as $key => $value) {
+      if (!is_string($value)) {
+        $params[$key] = json_encode($value);
+      }
+    }
+    $result = json_decode($this->_oauthRequest(
+      $this->getUrl($path, $params),
+      $method,
+      $headers
+    ), true);
+
+    // results are returned, errors are thrown
+    if (is_array($result) && isset($result['error'])) {
+      $this->throwAPIException($result);
+    }
+    var_dump($result);
+    return $result;
   }
 
   /**
@@ -288,13 +315,17 @@ abstract class EtalioLoginBase
       // need to circumvent json_decode by calling _oauthRequest
       // directly, since response isn't JSON format.
       $access_token_response =
-        $this->_oauthRequest(
+        $this->makeRequest(
           $this->getUrl('token'),
-          $params = array('client_id' => $this->appId,
-                          'client_secret' => $this->appSecret,
-                          'redirect_uri' => $this->redirectUri,
-                          'grant_type' => 'authorization_code',
-                          'code' => $code));
+          "POST",
+          $params = [
+                      'client_id' => $this->appId,
+                      'client_secret' => $this->appSecret,
+                      'redirect_uri' => $this->redirectUri,
+                      'grant_type' => 'authorization_code',
+                      'code' => $code,
+                    ]
+        );
     } catch (EtalioApiException $e) {
       // most likely that user very recently revoked authorization.
       // In any event, we don't have an access token, so say so.
@@ -319,7 +350,7 @@ abstract class EtalioLoginBase
       // need to circumvent json_decode by calling _oauthRequest
       // directly, since response isn't JSON format.
       $access_token_response =
-        $this->_oauthRequest(
+        $this->makeRequest(
           $this->getUrl('token'),
           $params = array(
             // 'client_id' => $this->appId,
@@ -355,40 +386,13 @@ abstract class EtalioLoginBase
    * @return string The decoded response object
    * @throws EtalioApiException
    */
-  protected function _oauthRequest($url, $params) {
-    if (!isset($params['access_token'])) {
-      $params['access_token'] = $this->getAccessToken();
+  protected function _oauthRequest($url, $method = "GET", $params = [], $headers = [], $ch = null) {
+    if($this->getAccessToken() == null) {
+      return false;
     }
-
-    // json_encode all params values that are not strings
-    foreach ($params as $key => $value) {
-      if (!is_string($value)) {
-        $params[$key] = json_encode($value);
-      }
-    }
-    return $this->makeRequest($url, $params);
+    array_push($headers,"Authorization: Bearer ".$this->getAccessToken());
+    return $this->makeRequest($url, $method, $params, $headers, $ch);
   }
-
-  protected function apiCall($path, $method = 'POST', $params = []) {
-    if (is_array($method) && empty($params)) {
-      $params = $method;
-      $method = 'POST';
-    }
-    $params['method'] = $method; // method override as we always do a POST
-    $params['Authentication'] = "Bearer ".$this->getAccessToken();
-    var_dump($this->getUrl($path, $params));
-    $result = json_decode($this->_oauthRequest(
-      $this->getUrl($path, $params),
-      $params
-    ), true);
-
-    // results are returned, errors are thrown
-    if (is_array($result) && isset($result['error'])) {
-      $this->throwAPIException($result);
-    }
-    return $result;
-  }
-
   /**
    * Makes an HTTP request. This method can be overridden by subclasses if
    * developers want to do fancier things or use something other than curl to
@@ -400,24 +404,23 @@ abstract class EtalioLoginBase
    *
    * @return string The response text
    */
-  protected function makeRequest($url, $params, $ch=null) {
+  protected function makeRequest($url, $method = "GET", $params = [], $headers=[], $ch=null) {
     if (!$ch) {
       $ch = curl_init();
     }
     $opts = $this->curlOpts;
-    $opts[CURLOPT_POSTFIELDS] = http_build_query($params, null, '&');
-    $opts[CURLOPT_URL] = $url;
-
-    // disable the 'Expect: 100-continue' behaviour. This causes CURL to wait
-    // for 2 seconds if the server does not support this header.
-    if (isset($opts[CURLOPT_HTTPHEADER])) {
-      $existing_headers = $opts[CURLOPT_HTTPHEADER];
-      $existing_headers[] = 'Expect:';
-      $opts[CURLOPT_HTTPHEADER] = $existing_headers;
+    if($method == "POST") {
+      $opts[CURLOPT_POSTFIELDS] = http_build_query($params, null, '&');
+      $opts[CURLOPT_URL] = $url;
     } else {
-      $opts[CURLOPT_HTTPHEADER] = array('Expect:');
+      $opts[CURLOPT_URL] = $url.http_build_query($params, null, '&');
     }
-    var_dump($opts);
+    if (isset($opts[CURLOPT_HTTPHEADER])) {
+      $opts[CURLOPT_HTTPHEADER] = array_merge($opts[CURLOPT_HTTPHEADER],$headers);
+    } else {
+      $opts[CURLOPT_HTTPHEADER] = $headers;
+    }
+    $opts[CURLOPT_CUSTOMREQUEST] = $method;
     curl_setopt_array($ch, $opts);
     $result = curl_exec($ch);
 
@@ -449,13 +452,13 @@ abstract class EtalioLoginBase
           }
         }
     }
-
+    var_dump($result);
     if ($result === false) {
       $e = new EtalioApiException(array(
         'error_code' => curl_errno($ch),
         'error' => array(
-        'message' => curl_error($ch),
-        'type' => 'CurlException',
+          'message' => curl_error($ch),
+          'type' => 'CurlException',
         ),
       ));
       curl_close($ch);
@@ -585,27 +588,28 @@ abstract class EtalioLoginBase
    */
   public function destroySession() {
     $this->accessToken = null;
+    $this->refreshToken = null;
+    $this->code = null;
     $this->user = null;
     $this->clearAllPersistentData();
-
     // Javascript sets a cookie that will be used in getSignedRequest that we
     // need to clear if we can
-    $cookie_name = $this->getSignedRequestCookieName();
-    if (array_key_exists($cookie_name, $_COOKIE)) {
-      unset($_COOKIE[$cookie_name]);
-      if (!headers_sent()) {
-        $base_domain = $this->getBaseDomain();
-        setcookie($cookie_name, '', 1, '/', '.'.$base_domain);
-      } else {
-        // @codeCoverageIgnoreStart
-        self::errorLog(
-          'There exists a cookie that we wanted to clear that we couldn\'t '.
-          'clear because headers was already sent. Make sure to do the first '.
-          'API call before outputing anything.'
-        );
-        // @codeCoverageIgnoreEnd
-      }
-    }
+    // $cookie_name = $this->getSignedRequestCookieName();
+    // if (array_key_exists($cookie_name, $_COOKIE)) {
+    //   unset($_COOKIE[$cookie_name]);
+    //   if (!headers_sent()) {
+    //     $base_domain = $this->getBaseDomain();
+    //     setcookie($cookie_name, '', 1, '/', '.'.$base_domain);
+    //   } else {
+    //     // @codeCoverageIgnoreStart
+    //     self::errorLog(
+    //       'There exists a cookie that we wanted to clear that we couldn\'t '.
+    //       'clear because headers was already sent. Make sure to do the first '.
+    //       'API call before outputing anything.'
+    //     );
+    //     // @codeCoverageIgnoreEnd
+    //   }
+    // }
   }
 
   protected function getMetadataCookieName() {
