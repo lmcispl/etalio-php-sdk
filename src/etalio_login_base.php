@@ -120,7 +120,7 @@ abstract class EtalioLoginBase
     $accessToken = $this->getPersistentData('access_token');
     $refreshToken = $this->getPersistentData('refresh_token');
     $state = $this->getPersistentData('state');
-    if (!empty($state)) {
+    if (!$this->isEmptyString($state)) {
       $this->state = $state;
     }
   }
@@ -351,7 +351,7 @@ abstract class EtalioLoginBase
    * @return string $accessToken the access token
    */
   protected function requestAccessTokenFromCode($code) {
-    if (empty($code)) {
+    if ($this->isEmptyString([$code,$this->appId,$this->appSecret])) {
       return false;
     }
 
@@ -398,7 +398,7 @@ abstract class EtalioLoginBase
    * @return string $accessToken the new access token
    */
   protected function refreshAccessToken() {
-    if(empty($this->accessToken) || empty($this->refreshToken)) {
+    if($this->isEmptyString([$this->accessToken,$this->refreshToken])) {
       return false;
     }
     try {
@@ -448,7 +448,7 @@ abstract class EtalioLoginBase
    * @throws EtalioApiException
    */
   protected function _oauthRequest($url, $method = "GET", Array $params = [], Array $headers=[]) {
-    if($this->getAccessToken() == null || $this->getAccessToken() == "") {
+    if(isEmptyString($this->getAccessToken())) {
       return false;
     }
     array_push($headers,"Authorization: Bearer ".$this->getAccessToken());
@@ -626,6 +626,16 @@ abstract class EtalioLoginBase
     //     // @codeCoverageIgnoreEnd
     //   }
     // }
+  }
+
+  private function isEmptyString($str) {
+    if(is_array($str)) {
+      foreach ($str as $s) {
+        if($s == null || strlen($s) == 0) return true;
+      }
+      return false;
+    }
+    return $str == null || strlen($str) == 0;
   }
 
   /**
