@@ -95,7 +95,7 @@ abstract class EtalioLoginBase
    *
    * @param array $config The application configuration
    */
-  public function __construct(Array $config) {
+  public function __construct(Array $config = []) {
     if(isset($config['appId']))         $this->setAppId($config['appId']);
     if(isset($config['secret']))        $this->setAppSecret($config['secret']);
     if(isset($config['redirect_uri']))  $this->setRedirectUri($config['redirect_uri']);

@@ -8,17 +8,12 @@ require_once "etalio_login_base.php";
  */
 class EtalioLogin extends EtalioLoginBase
 {
-  const ETALIOSS_COOKIE_NAME = 'etalioss';
-
   // We can set this to a high number because the main session
   // expiration will trump this.
   const ETALIOSS_COOKIE_EXPIRE = 31556926; // 1 year
 
   // Keys we support to store in the persistent data
   protected static $kSupportedKeys = array('state', 'access_token', 'user_id', 'refresh_token');
-
-  // Stores the shared session ID if one is set.
-  protected $sharedSessionID;
 
   /**
    * Identical to the parent constructor, except that
@@ -27,7 +22,7 @@ class EtalioLogin extends EtalioLoginBase
    * we discover them.
    * @see EtalioLoginBase::__construct in etalio.php
    */
-  public function __construct($config) {
+  public function __construct(Array $config = []) {
     if (!session_id()) {
       session_start();
     }
@@ -45,25 +40,23 @@ class EtalioLogin extends EtalioLoginBase
       self::errorLog('Unsupported key passed to setPersistentData: '.$key);
       return;
     }
-
     $session_var_name = $this->constructSessionVariableName($key);
     $_SESSION[$session_var_name] = $value;
   }
 
   protected function getPersistentData($key, $default = false) {
     if (!in_array($key, self::$kSupportedKeys)) {
-      self::errorLog('Unsupported key passed to getPersistentData:'.$key);
+      self::errorLog('Unsupported key passed to getPersistentData: '.$key);
       return $default;
     }
 
     $session_var_name = $this->constructSessionVariableName($key);
-    return isset($_SESSION[$session_var_name]) ?
-      $_SESSION[$session_var_name] : $default;
+    return isset($_SESSION[$session_var_name]) ? $_SESSION[$session_var_name] : $default;
   }
 
   protected function clearPersistentData($key) {
     if (!in_array($key, self::$kSupportedKeys)) {
-      self::errorLog('Unsupported key passed to clearPersistentData:'.$key);
+      self::errorLog('Unsupported key passed to clearPersistentData: '.$key);
       return;
     }
 
@@ -77,27 +70,9 @@ class EtalioLogin extends EtalioLoginBase
     foreach (self::$kSupportedKeys as $key) {
       $this->clearPersistentData($key);
     }
-    if ($this->sharedSessionID) {
-      $this->deleteSharedSessionCookie();
-    }
-  }
-
-  protected function deleteSharedSessionCookie() {
-    $cookie_name = $this->getSharedSessionCookieName();
-    unset($_COOKIE[$cookie_name]);
-    $base_domain = $this->getBaseDomain();
-    setcookie($cookie_name, '', 1, '/', '.'.$base_domain);
-  }
-
-  protected function getSharedSessionCookieName() {
-    return self::ETALIOSS_COOKIE_NAME . '_' . $this->getAppId();
   }
 
   protected function constructSessionVariableName($key) {
-    $parts = array('etalio', $this->appId, $key);
-    if ($this->sharedSessionID) {
-      array_unshift($parts, $this->sharedSessionID);
-    }
-    return implode('_', $parts);
+    return implode('_', ['etalio', $this->appId, $key]);
   }
 }

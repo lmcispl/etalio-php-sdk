@@ -10,7 +10,7 @@ class Etalio extends EtalioLogin
 {
   protected $currentProfile;
 
-  public function __construct($config) {
+  public function __construct(Array $config = []) {
     parent::__construct($config);
     $this->domainMap = array_merge($this->domainMap, [
       'myprofile'   => self::BASE_URL . '/' . self::API_VERSION . '/profile/me',

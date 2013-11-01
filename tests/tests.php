@@ -1,5 +1,7 @@
 <?php
-class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
+namespace Etalio;
+
+class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   const APP_ID = '117743971608120';
   const SECRET = '9c8ea2071859659bea1246d33a9207cf';
   const REDIRECT_URI = 'https://www.test.com/unit-tests.php';
@@ -239,49 +241,6 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
             'Persisted CSRF state token not loaded correctly');
   }
 
-  public function testMissingMetadataCookie() {
-    $etalio = new ETALIOPublicCookie(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-      'redirect_uri' => self::REDIRECT_URI,
-    ));
-    $this->assertEmpty($etalio->publicGetMetadataCookie());
-  }
-
-  public function testEmptyMetadataCookie() {
-    $etalio = new ETALIOPublicCookie(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-      'redirect_uri' => self::REDIRECT_URI,
-    ));
-    $_COOKIE[$etalio->publicGetMetadataCookieName()] = '';
-    $this->assertEmpty($etalio->publicGetMetadataCookie());
-  }
-
-  public function testMetadataCookie() {
-    $etalio = new ETALIOPublicCookie(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-      'redirect_uri' => self::REDIRECT_URI,
-    ));
-    $key = 'foo';
-    $val = '42';
-    $_COOKIE[$etalio->publicGetMetadataCookieName()] = "$key=$val";
-    $this->assertEquals(array($key => $val), $etalio->publicGetMetadataCookie());
-  }
-
-  public function testQuotedMetadataCookie() {
-    $etalio = new ETALIOPublicCookie(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-      'redirect_uri' => self::REDIRECT_URI,
-    ));
-    $key = 'foo';
-    $val = '42';
-    $_COOKIE[$etalio->publicGetMetadataCookieName()] = "\"$key=$val\"";
-    $this->assertEquals(array($key => $val), $etalio->publicGetMetadataCookie());
-  }
-
   public function testLoginURLDefaults() {
     $_SERVER['HTTP_HOST'] = 'fbrell.com';
     $_SERVER['REQUEST_URI'] = '/examples';
@@ -357,13 +316,6 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
                          'Expect the current url to exist.');
   }
 
-  public function testBase64UrlEncode() {
-    $input = 'Etalio rocks';
-    $output = 'RXRhbGlvIHJvY2tz';
-
-    $this->assertEquals(ETALIOPublic::publicBase64UrlDecode($output), $input);
-  }
-
   public function testGetUserAndAccessTokenFromSession() {
     $etalio = new PersistentETALIOPublic([
      'appId'  => self::APP_ID,
@@ -393,23 +345,6 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
                        '$_REQUEST is empty.');
     $this->assertEmpty($_SESSION,
                        'Session is carrying state and should not be.');
-  }
-
-  public function testInvalidCodeWillClearData() {
-    $code = 'code1';
-    $methods_to_stub = array(
-      'getCode',
-      'getAccessTokenFromCode',
-      'clearAllPersistentData',
-    );
-    $constructor_args = array(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-      'redirect_uri' => self::REDIRECT_URI,
-    ));
-    $stub = $this->getMock(
-      'TransientEtalio', $methods_to_stub, $constructor_args);
-    $this->assertFalse($stub->getAccessToken());
   }
 
   public function testEmptyCodeReturnsFalse() {
@@ -579,11 +514,11 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
     $real = 'foo.com';
     $_SERVER['HTTP_HOST'] = $real;
     $_SERVER['HTTP_X_FORWARDED_HOST'] = 'evil.com';
-    $etalio = new PersistentETALIOPublic(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-      'redirect_uri' => self::REDIRECT_URI,
-    ));
+    $etalio = new PersistentETALIOPublic([
+          'appId'  => self::APP_ID,
+          'secret' => self::SECRET,
+          'redirect_uri' => self::REDIRECT_URI,
+      ]);
     $this->assertEquals($real, $etalio->publicGetHttpHost());
   }
 
@@ -608,16 +543,6 @@ class PHPSDKTestCase extends PHPUnit_Framework_TestCase {
       'trustForwarded' => true,
     ));
     $this->assertEquals('https', $etalio->publicGetHttpProtocol());
-  }
-
-  /**
-   * @dataProvider provideEndsWith
-   */
-  public function testEndsWith($big, $small, $result) {
-    $this->assertEquals(
-      $result,
-      PersistentETALIOPublic::publicEndsWith($big, $small)
-    );
   }
 
   public function provideEndsWith() {
@@ -709,15 +634,14 @@ class TransientEtalio extends EtalioLoginBase {
     return $this->appSecret;
   }
   public function setAccessToken($tkn) {
-    $this->accessToken = $tkn;
-    $this->setPersistentData('access_token',$tkn);
+    parent::setAccessToken($tkn);
   }
 }
 
 class ETALIORecordURL extends TransientEtalio {
   private $url;
 
-  protected function _oauthRequest($url, $params) {
+  protected function _oauthRequest($url, $method = 'GET', Array $params = [], Array $headers = []) {
     $this->url = $url;
   }
 
@@ -729,25 +653,16 @@ class ETALIORecordURL extends TransientEtalio {
 class ETALIORecordMakeRequest extends TransientEtalio {
   private $requests = array();
 
-  protected function makeRequest($url, $params, $ch=null) {
+  protected function makeRequest($url, $method = 'GET', Array $params = [], Array $headers = []) {
     $this->requests[] = array(
       'url' => $url,
       'params' => $params,
     );
-    return parent::makeRequest($url, $params, $ch);
+    return parent::makeRequest($url, $method, $params, $headers);
   }
 
   public function publicGetRequests() {
     return $this->requests;
-  }
-}
-
-class ETALIOPublic extends TransientEtalio {
-  public static function publicBase64UrlDecode($input) {
-    return self::base64UrlDecode($input);
-  }
-  public static function publicBase64UrlEncode($input) {
-    return self::base64UrlEncode($input);
   }
 }
 
@@ -780,10 +695,6 @@ class PersistentETALIOPublic extends EtalioLogin {
     return self::isAllowedDomain($big, $small);
   }
 
-  public static function publicEndsWith($big, $small) {
-    return self::endsWith($big, $small);
-  }
-
   public function publicGetSharedSessionCookieName() {
     return $this->getSharedSessionCookieName();
   }
@@ -814,51 +725,6 @@ class ETALIOCode extends EtalioLogin {
     return $this->getPersistentData('state');
   }
 }
-
-class ETALIOAccessToken extends TransientEtalio {
-  public function publicGetApplicationAccessToken() {
-    return $this->getApplicationAccessToken();
-  }
-}
-
-class ETALIOGetCurrentURLEtalio extends TransientEtalio {
-  public function publicGetCurrentUrl() {
-    return $this->getCurrentUrl();
-  }
-}
-
-class ETALIOPublicCookie extends TransientEtalio {
-  public function publicGetSignedRequest() {
-    return $this->getSignedRequest();
-  }
-
-  public function publicGetSignedRequestCookieName() {
-    return $this->getSignedRequestCookieName();
-  }
-
-  public function publicGetMetadataCookie() {
-    return $this->getMetadataCookie();
-  }
-
-  public function publicGetMetadataCookieName() {
-    return $this->getMetadataCookieName();
-  }
-}
-
-class ETALIORewrite extends Etalio {
-
-  public function uncacheSignedRequest(){
-    $this->signedRequest = null;
-  }
-
-  public function uncache()
-  {
-    $this->user = null;
-    $this->signedRequest = null;
-    $this->accessToken = null;
-  }
-}
-
 
 class ETALIOPublicGetAccessTokenFromCode extends TransientEtalio {
   public function publicRequestAccessTokenFromCode($code, $redirect_uri = null) {
