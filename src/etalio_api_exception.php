@@ -1,11 +1,12 @@
 <?php
+namespace Etalio;
 /**
  * Thrown when an API call returns an exception.
  *
  * @author Martin Kurtsson <martin.kurtsson@screeninteraction.com>
  * @basedon FacebookApiException by Naitik Shah <naitik@facebook.com>
  */
-class EtalioApiException extends Exception
+class EtalioApiException extends \Exception
 {
   /**
    * The result from the API server that represents the exception information.

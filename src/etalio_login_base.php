@@ -1,4 +1,6 @@
 <?php
+namespace Etalio;
+
 require_once('etalio_api_exception.php');
 
 if (!function_exists('curl_init')) {
@@ -66,8 +68,21 @@ abstract class EtalioLoginBase
    * code.  null means the access token has yet to be determined.
    */
   protected $accessToken;
+
+  /**
+   * The refreshtoken connected to the access token
+   */
   protected $refreshToken;
+
+  /**
+   * The uri that handles callbacks from OAuth
+   */
   protected $redirectUri;
+
+  /**
+   * If debug functions should be activated
+   */
+  protected $debug = false;
 
   /**
    * Initialize a Etalio Application.
@@ -75,10 +90,17 @@ abstract class EtalioLoginBase
    * The configuration:
    * - appId: the application ID
    * - secret: the application secret
+   * - redirect_uri: the uri that handles OAauth callbacks
+   * - debug: if Etalio should be more verbose for debugging purposes
    *
    * @param array $config The application configuration
    */
-  public function __construct($config) {
+  public function __construct(Array $config) {
+    if(isset($config['appId']))         $this->setAppId($config['appId']);
+    if(isset($config['secret']))        $this->setAppSecret($config['secret']);
+    if(isset($config['redirect_uri']))  $this->setRedirectUri($config['redirect_uri']);
+    if(isset($config['debug']))         $this->debug = $config['debug'];
+
     //Populate with bare minimum of Etalio functionality, add more in sub classes
     $this->domainMap = array(
       'api'       => self::BASE_URL,
@@ -86,19 +108,18 @@ abstract class EtalioLoginBase
       'oauth2'    => self::BASE_URL . '/oauth2',
       'token'     => self::BASE_URL . '/oauth2/token',
     );
+
     $this->curlOpts = array(
       CURLOPT_CONNECTTIMEOUT => 10,
       CURLOPT_RETURNTRANSFER => true,
       CURLOPT_TIMEOUT        => 60,
       CURLOPT_USERAGENT      => 'etalio-php-'.self::VERSION,
-      CURLOPT_VERBOSE        => $config['debug'],
+      CURLOPT_VERBOSE        => $this->debug,
     );
-    $this->setRedirectUri($config['redirect_uri']);
-    $this->setAppId($config['appId']);
-    $this->setAppSecret($config['secret']);
-    $state = $this->getPersistentData('state');
+
     $accessToken = $this->getPersistentData('access_token');
     $refreshToken = $this->getPersistentData('refresh_token');
+    $state = $this->getPersistentData('state');
     if (!empty($state)) {
       $this->state = $state;
     }
@@ -109,14 +130,10 @@ abstract class EtalioLoginBase
    * assumed. If you are using the generated URL with a window.open() call in
    * JavaScript, you can pass in display=popup as part of the $params.
    *
-   * The parameters:
-   * - redirect_uri: the url to go to after a successful login
-   * - scope: comma separated list of requested extended perms
-   *
-   * @param array $params Provide custom parameters
+   * @param array $params Provide custom parameters for the url
    * @return string The URL for the login flow
    */
-  public function getLoginUrl($params=[]) {
+  public function getLoginUrl(Array $params=[]) {
     $this->establishCSRFTokenState();
     // if 'scope' is passed as an array, convert to comma separated list
     $scopeParams = isset($params['scope']) ? $params['scope'] : null;
@@ -150,8 +167,17 @@ abstract class EtalioLoginBase
     return $this->accessToken;
   }
 
-
-  public function apiCall($path, $method = 'GET', $params = [], $headers = []) {
+  /**
+   * Calls an end point in the Etalio API
+   *
+   * @param string $url The path (required)
+   * @param string $method GET, POST, PUT or DELETE
+   * @param array $params The query/post data
+   * @param array $headers The header data
+   *
+   * @return array $result the answer from the api as an associative array
+   */
+  public function apiCall($path, $method = 'GET', Array $params = [], Array $headers = []) {
     if (is_array($method) && empty($params)) {
       $params = $method;
       $method = 'GET';
@@ -172,7 +198,6 @@ abstract class EtalioLoginBase
     if (is_array($result) && isset($result['error'])) {
       $this->throwAPIException($result);
     }
-    var_dump($result);
     return $result;
   }
 
@@ -230,10 +255,24 @@ abstract class EtalioLoginBase
     return $this->accessToken;
   }
 
+
+
+  /*************************************************************************
+   *                     PROTECTED METHODS STARTS HERE                     *
+   *************************************************************************/
+
+  /**
+   * Stores the refresh token in both object and persistent store
+   * @param string $token the refresh token
+   */
   protected function setRefreshToken($token) {
     $this->refreshToken = $token;
     $this->setPersistentData('refresh_token',$token);
   }
+  /**
+   * Stores the access token in both object and persistent store
+   * @param string $token the access token
+   */
   protected function setAccessToken($token) {
     $this->accessToken = $token;
     $this->setPersistentData('access_token',$token);
@@ -251,12 +290,9 @@ abstract class EtalioLoginBase
    */
   protected function getAccessTokenFromCode() {
     $code = $this->getCodeFromRequest();
-    if ($code && $code != $this->getPersistentData('code')) {
+    if ($code) {
       $access_token = $this->requestAccessTokenFromCode($code);
       if ($access_token) {
-        $this->setPersistentData('code', $code);
-        $this->setPersistentData('access_token', $access_token);
-        $this->accessToken = $access_token;
         return $access_token;
       }
       // code was bogus, so everything based on it should be invalidated.
@@ -306,13 +342,21 @@ abstract class EtalioLoginBase
     }
   }
 
+  /**
+   * Requests to exchange the OAuth code for access and refresh token
+   * Stores both values using their setters
+   *
+   * @param string $code The code from an oauth handshake
+   *
+   * @return string $accessToken the access token
+   */
   protected function requestAccessTokenFromCode($code) {
     if (empty($code)) {
       return false;
     }
 
     try {
-      // need to circumvent json_decode by calling _oauthRequest
+      // need to circumvent json_decode by calling makeRequest
       // directly, since response isn't JSON format.
       $access_token_response =
         $this->makeRequest(
@@ -338,26 +382,39 @@ abstract class EtalioLoginBase
 
     $response_params = json_decode($access_token_response,true);
     $accessToken = $response_params['access_token'];
-    if (!isset($accessToken)) {
+    $refreshToken = $response_params['refresh_token'];
+    if (!isset($accessToken) || !isset($refreshToken)) {
       return false;
     }
-    $this->setRefreshToken($response_params['refresh_token']);
+    $this->setAccessToken($accessToken);
+    $this->setRefreshToken($refreshToken);
     return $accessToken;
   }
 
+  /**
+   * Requests to exchange the refreshToken stored in the persistent store for
+   * a new access token. Stores both values using their setters
+   *
+   * @return string $accessToken the new access token
+   */
   protected function refreshAccessToken() {
+    if(empty($this->accessToken) || empty($this->refreshToken)) {
+      return false;
+    }
     try {
       // need to circumvent json_decode by calling _oauthRequest
       // directly, since response isn't JSON format.
+      $params = [
+                  'client_id' => $this->appId,
+                  'client_secret' => $this->appSecret,
+                  // 'redirect_uri' => $this->redirectUri,
+                  'refresh_token' => $this->refreshToken,
+                  'access_token' => $this->accessToken,
+                  'grant_type' => 'refresh_token',
+                ];
+      var_dump($params);
       $access_token_response =
-        $this->makeRequest(
-          $this->getUrl('token'),
-          $params = array(
-            // 'client_id' => $this->appId,
-            // 'client_secret' => $this->appSecret,
-            // 'redirect_uri' => $this->redirectUri,
-            'refresh_token' => $this->refreshToken,
-            'grant_type' => 'refresh_token'));
+        $this->makeRequest($this->getUrl('token'),"POST",$params);
     } catch (EtalioApiException $e) {
       // most likely that user very recently revoked authorization.
       // In any event, we don't have an access token, so say so.
@@ -370,45 +427,56 @@ abstract class EtalioLoginBase
 
     $response_params = json_decode($access_token_response,true);
     $accessToken = $response_params['access_token'];
-    if (!isset($accessToken)) {
+    $refreshToken = $response_params['refresh_token'];
+    if (!isset($accessToken) || !isset($refreshToken)) {
       return false;
     }
-    $this->setRefreshToken($response_params['refresh_token']);
+    $this->setAccessToken($accessToken);
+    $this->setRefreshToken($refreshToken);
     return $accessToken;
   }
 
   /**
-   * Make a OAuth Request.
+   * Make a OAuth Request. Adds the authorization parameter to the request
    *
    * @param string $url The path (required)
+   * @param string $method GET, POST, PUT or DELETE
    * @param array $params The query/post data
+   * @param array $headers The header data
    *
    * @return string The decoded response object
    * @throws EtalioApiException
    */
-  protected function _oauthRequest($url, $method = "GET", $params = [], $headers = [], $ch = null) {
-    if($this->getAccessToken() == null) {
+  protected function _oauthRequest($url, $method = "GET", Array $params = [], Array $headers=[]) {
+    if(empty($this->getAccessToken())) {
       return false;
     }
     array_push($headers,"Authorization: Bearer ".$this->getAccessToken());
-    return $this->makeRequest($url, $method, $params, $headers, $ch);
+    $result = $this->makeRequest($url, $method, $params, $headers);
+    if((strpos($result, 'The access token provided has expired') !== false)) {
+      $this->refreshAccessToken();
+      $result = $this->makeRequest($url, $method, $params, $headers);
+    }
+    return $result;
   }
   /**
    * Makes an HTTP request. This method can be overridden by subclasses if
    * developers want to do fancier things or use something other than curl to
    * make the request.
    *
-   * @param string $url The URL to make the request to
-   * @param array $params The parameters to use for the POST body
-   * @param CurlHandler $ch Initialized curl handle
+   * @param string $url The path (required)
+   * @param string $method GET, POST, PUT or DELETE
+   * @param array $params The query/post data
+   * @param array $headers The header data
    *
    * @return string The response text
    */
-  protected function makeRequest($url, $method = "GET", $params = [], $headers=[], $ch=null) {
-    if (!$ch) {
-      $ch = curl_init();
-    }
+  protected function makeRequest($url, $method = "GET", Array $params = [], Array $headers=[]) {
+    $ch = curl_init();
     $opts = $this->curlOpts;
+    $opts[CURLOPT_CUSTOMREQUEST] = $method;
+    // If method is POST store all parameters as POST Fields
+    // instead of URL parameters
     if($method == "POST") {
       $opts[CURLOPT_POSTFIELDS] = http_build_query($params, null, '&');
       $opts[CURLOPT_URL] = $url;
@@ -420,19 +488,10 @@ abstract class EtalioLoginBase
     } else {
       $opts[CURLOPT_HTTPHEADER] = $headers;
     }
-    $opts[CURLOPT_CUSTOMREQUEST] = $method;
     curl_setopt_array($ch, $opts);
     $result = curl_exec($ch);
 
     $errno = curl_errno($ch);
-    // CURLE_SSL_CACERT || CURLE_SSL_CACERT_BADFILE
-    if ($errno == 60 || $errno == 77) {
-      self::errorLog('Invalid or no certificate authority found, '.
-                     'using bundled information');
-      curl_setopt($ch, CURLOPT_CAINFO,
-                  dirname(__FILE__) . '/fb_ca_chain_bundle.crt');
-      $result = curl_exec($ch);
-    }
 
     // With dual stacked DNS responses, it's possible for a server to
     // have IPv6 enabled but not have IPv6 connectivity.  If this is
@@ -452,15 +511,16 @@ abstract class EtalioLoginBase
           }
         }
     }
-    var_dump($result);
+    if($this->debug) self::errorLog("Data recieved from ".$url.": ".$result);
     if ($result === false) {
-      $e = new EtalioApiException(array(
+      $e = new EtalioApiException([
         'error_code' => curl_errno($ch),
-        'error' => array(
+        'error' => [
           'message' => curl_error($ch),
           'type' => 'CurlException',
-        ),
-      ));
+        ],
+      ]);
+      var_dump($e);
       curl_close($ch);
       throw $e;
     }
@@ -491,20 +551,6 @@ abstract class EtalioLoginBase
 
   protected function getHttpProtocol() {
     return 'https';
-  }
-
-  /**
-   * Get the base domain used for the cookie.
-   */
-  protected function getBaseDomain() {
-    // The base domain is stored in the metadata cookie if not we fallback
-    // to the current hostname
-    $metadata = $this->getMetadataCookie();
-    if (array_key_exists('base_domain', $metadata) &&
-        !empty($metadata['base_domain'])) {
-      return trim($metadata['base_domain'], '.');
-    }
-    return $this->getHttpHost();
   }
 
   /**
@@ -555,42 +601,12 @@ abstract class EtalioLoginBase
   }
 
   /**
-   * Base64 encoding that doesn't need to be urlencode()ed.
-   * Exactly the same as base64_encode except it uses
-   *   - instead of +
-   *   _ instead of /
-   *   No padded =
-   *
-   * @param string $input base64UrlEncoded string
-   * @return string
-   */
-  protected static function base64UrlDecode($input) {
-    return base64_decode(strtr($input, '-_', '+/'));
-  }
-
-  /**
-   * Base64 encoding that doesn't need to be urlencode()ed.
-   * Exactly the same as base64_encode except it uses
-   *   - instead of +
-   *   _ instead of /
-   *
-   * @param string $input string
-   * @return string base64Url encoded string
-   */
-  protected static function base64UrlEncode($input) {
-    $str = strtr(base64_encode($input), '+/', '-_');
-    $str = str_replace('=', '', $str);
-    return $str;
-  }
-
-  /**
    * Destroy the current session
    */
   public function destroySession() {
     $this->accessToken = null;
     $this->refreshToken = null;
     $this->code = null;
-    $this->user = null;
     $this->clearAllPersistentData();
     // Javascript sets a cookie that will be used in getSignedRequest that we
     // need to clear if we can
@@ -610,49 +626,6 @@ abstract class EtalioLoginBase
     //     // @codeCoverageIgnoreEnd
     //   }
     // }
-  }
-
-  protected function getMetadataCookieName() {
-    return 'etalio_'.$this->getAppId();
-  }
-
-  /**
-   * Parses the metadata cookie that our Javascript API set
-   *
-   * @return  an array mapping key to value
-   */
-  protected function getMetadataCookie() {
-    $cookie_name = $this->getMetadataCookieName();
-    if (!array_key_exists($cookie_name, $_COOKIE)) {
-      return array();
-    }
-
-    // The cookie value can be wrapped in "-characters so remove them
-    $cookie_value = trim($_COOKIE[$cookie_name], '"');
-
-    if (empty($cookie_value)) {
-      return array();
-    }
-
-    $parts = explode('&', $cookie_value);
-    $metadata = array();
-    foreach ($parts as $part) {
-      $pair = explode('=', $part, 2);
-      if (!empty($pair[0])) {
-        $metadata[urldecode($pair[0])] =
-          (count($pair) > 1) ? urldecode($pair[1]) : '';
-      }
-    }
-
-    return $metadata;
-  }
-
-  protected static function endsWith($big, $small) {
-    $len = strlen($small);
-    if ($len === 0) {
-      return true;
-    }
-    return substr($big, -$len) === $small;
   }
 
   /**

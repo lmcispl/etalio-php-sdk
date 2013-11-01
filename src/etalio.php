@@ -1,5 +1,7 @@
 <?php
+namespace Etalio;
 require_once "etalio_login.php";
+require_once "models/profile.php";
 
 /**
  * Extends the EtalioLogin class and adds helper methods for the Etalio Api
@@ -10,10 +12,11 @@ class Etalio extends EtalioLogin
 
   public function __construct($config) {
     parent::__construct($config);
-    $this->domainMap = array_merge($this->domainMap, array(
-      'profile'   => self::BASE_URL . '/' . self::API_VERSION . '/profile/me',
+    $this->domainMap = array_merge($this->domainMap, [
+      'myprofile'   => self::BASE_URL . '/' . self::API_VERSION . '/profile/me',
+      'profile'   => self::BASE_URL . '/' . self::API_VERSION . '/profile',
       'apps'      => self::BASE_URL . '/' . self::API_VERSION . '/user/applications',
-    ));
+    ]);
   }
 
   public function isProfileAuthenticated(){
@@ -70,7 +73,7 @@ class Etalio extends EtalioLogin
 
   public function getCurrentProfile(){
     if(!isset($this->currentProfile)) {
-      $this->currentProfile = $this->apiCall('profile');
+      $this->currentProfile = new \Etalio\Models\Profile($this->apiCall('myprofile'));
     }
     return $this->currentProfile;
   }
@@ -88,7 +91,10 @@ class Etalio extends EtalioLogin
   }
 
   public function getProfile($profileId){
-
+    $this->domainMap = array_merge($this->domainMap, [
+      'profile-'.$profileId   => $this->domainMap['profile']."/".$profileId,
+    ]);
+    return new \Etalio\Models\Profile($this->apiCall('profile-'.$profileId));
   }
 
   public function createProfile($payload){

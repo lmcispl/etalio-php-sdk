@@ -1,4 +1,5 @@
 <?php
+namespace Etalio;
 require_once "etalio_login_base.php";
 
 /**
@@ -14,7 +15,7 @@ class EtalioLogin extends EtalioLoginBase
   const ETALIOSS_COOKIE_EXPIRE = 31556926; // 1 year
 
   // Keys we support to store in the persistent data
-  protected static $kSupportedKeys = array('state', 'code', 'access_token', 'user_id', 'refresh_token');
+  protected static $kSupportedKeys = array('state', 'access_token', 'user_id', 'refresh_token');
 
   // Stores the shared session ID if one is set.
   protected $sharedSessionID;
