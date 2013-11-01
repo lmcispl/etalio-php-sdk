@@ -448,7 +448,7 @@ abstract class EtalioLoginBase
    * @throws EtalioApiException
    */
   protected function _oauthRequest($url, $method = "GET", Array $params = [], Array $headers=[]) {
-    if(empty($this->getAccessToken())) {
+    if($this->getAccessToken() == null || $this->getAccessToken() == "") {
       return false;
     }
     array_push($headers,"Authorization: Bearer ".$this->getAccessToken());
