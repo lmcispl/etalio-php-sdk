@@ -184,6 +184,7 @@ abstract class EtalioLoginBase
       $this->debug("Empty access token, can not access API");
       return false;
     }
+    //If no method is defined but params, move arguments one step
     if (is_array($method) && empty($params)) {
       $params = $method;
       $method = 'GET';
@@ -434,11 +435,10 @@ abstract class EtalioLoginBase
     }
 
     $response_params = json_decode($access_token_response,true);
-    if (!isset($response_params['access_token']) || !isset($response_params['refresh_token'])) {
+    if (!isset($response_params['access_token'])) {
       return false;
     }
     $this->setAccessToken($response_params['access_token']);
-    $this->setRefreshToken($response_params['refresh_token']);
     return $response_params['access_token'];
   }
 
