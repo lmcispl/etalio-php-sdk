@@ -36,8 +36,9 @@ class EtalioLogin extends EtalioLoginBase
    * access tokens.
    */
   protected function setPersistentData($key, $value) {
+    $this->debug("Setting persistent data: ".$key.":".$value);
     if (!in_array($key, self::$kSupportedKeys)) {
-      self::errorLog('Unsupported key passed to setPersistentData: '.$key);
+      self::errorLog('Unsupported key passed to setPersistentData: '.$key.$value);
       return;
     }
     $session_var_name = $this->constructSessionVariableName($key);
@@ -49,12 +50,14 @@ class EtalioLogin extends EtalioLoginBase
       self::errorLog('Unsupported key passed to getPersistentData: '.$key);
       return $default;
     }
-
     $session_var_name = $this->constructSessionVariableName($key);
-    return isset($_SESSION[$session_var_name]) ? $_SESSION[$session_var_name] : $default;
+    $val = isset($_SESSION[$session_var_name]) ? $_SESSION[$session_var_name] : $default;
+    $this->debug("Reading persistent data: ".$session_var_name.":".$key.":".$val);
+    return $val;
   }
 
   protected function clearPersistentData($key) {
+    $this->debug("Clearing persistent data: ".$key);
     if (!in_array($key, self::$kSupportedKeys)) {
       self::errorLog('Unsupported key passed to clearPersistentData: '.$key);
       return;

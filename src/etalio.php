@@ -73,7 +73,12 @@ class Etalio extends EtalioLogin
 
   public function getCurrentProfile(){
     if(!isset($this->currentProfile)) {
-      $this->currentProfile = new \Etalio\Models\Profile($this->apiCall('myprofile'));
+      $profile = $this->apiCall('myprofile');
+      if($profile) {
+        $this->currentProfile = new \Etalio\Models\Profile();
+      } else {
+        return false;
+      }
     }
     return $this->currentProfile;
   }

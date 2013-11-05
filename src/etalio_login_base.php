@@ -33,7 +33,7 @@ abstract class EtalioLoginBase
   /**
    * Version of this SDK
    */
-  const VERSION = '0.2.1';
+  const VERSION = '0.2.6';
 
   /**
    * Default options for curl.
@@ -117,12 +117,13 @@ abstract class EtalioLoginBase
       CURLOPT_VERBOSE        => $this->debug,
     );
 
-    $accessToken = $this->getPersistentData('access_token');
-    $refreshToken = $this->getPersistentData('refresh_token');
+    $this->accessToken = $this->getPersistentData('access_token');
+    $this->refreshToken = $this->getPersistentData('refresh_token');
     $state = $this->getPersistentData('state');
     if (!$this->isEmptyString($state)) {
       $this->state = $state;
     }
+    $this->debug("Etalio SDK initated");
   }
 
   /**
@@ -178,6 +179,11 @@ abstract class EtalioLoginBase
    * @return array $result the answer from the api as an associative array
    */
   public function apiCall($path, $method = 'GET', Array $params = [], Array $headers = []) {
+    $this->debug("Calling API: ".$path);
+    if($this->isEmptyString($this->accessToken)) {
+      $this->debug("Empty access token, can not access API");
+      return false;
+    }
     if (is_array($method) && empty($params)) {
       $params = $method;
       $method = 'GET';
@@ -188,7 +194,7 @@ abstract class EtalioLoginBase
         $params[$key] = json_encode($value);
       }
     }
-    $result = json_decode($this->_oauthRequest(
+    $result = json_decode($this->authorizedRequest(
       $this->getUrl($path, $params),
       $method,
       $headers
@@ -322,7 +328,7 @@ abstract class EtalioLoginBase
         $this->clearPersistentData('state');
         return $_REQUEST['code'];
       } else {
-        self::errorLog('CSRF state token does not match one provided.');
+        $this->errorLog('CSRF state token does not match one provided.');
         return false;
       }
     }
@@ -351,7 +357,9 @@ abstract class EtalioLoginBase
    * @return string $accessToken the access token
    */
   protected function requestAccessTokenFromCode($code) {
+    $this->debug("Requesting access token from code");
     if ($this->isEmptyString([$code,$this->appId,$this->appSecret])) {
+      $this->debug("Code, AppId or AppSecret is empty, can not request code.");
       return false;
     }
 
@@ -381,14 +389,14 @@ abstract class EtalioLoginBase
     }
 
     $response_params = json_decode($access_token_response,true);
-    $accessToken = $response_params['access_token'];
-    $refreshToken = $response_params['refresh_token'];
-    if (!isset($accessToken) || !isset($refreshToken)) {
+    // $accessToken = $response_params['access_token'];
+    // $refreshToken = $response_params['refresh_token'];
+    if (!isset($response_params['access_token']) || !isset($response_params['refresh_token'])) {
       return false;
     }
-    $this->setAccessToken($accessToken);
-    $this->setRefreshToken($refreshToken);
-    return $accessToken;
+    $this->setAccessToken($response_params['access_token']);
+    $this->setRefreshToken($response_params['refresh_token']);
+    return $response_params['access_token'];
   }
 
   /**
@@ -398,7 +406,9 @@ abstract class EtalioLoginBase
    * @return string $accessToken the new access token
    */
   protected function refreshAccessToken() {
+    $this->debug("Refreshing accessToken: ".$this->accessToken);
     if($this->isEmptyString([$this->accessToken,$this->refreshToken])) {
+      $this->debug("AccessToken or refreshToken is empty, can not refresg accessToken.");
       return false;
     }
     try {
@@ -447,15 +457,23 @@ abstract class EtalioLoginBase
    * @return string The decoded response object
    * @throws EtalioApiException
    */
-  protected function _oauthRequest($url, $method = "GET", Array $params = [], Array $headers=[]) {
-    if(isEmptyString($this->getAccessToken())) {
+  protected function authorizedRequest($url, $method = "GET", Array $params = [], Array $orgHeaders=[]) {
+    $this->debug("Making an authorized request using token: ".$this->accessToken." ");
+    if($this->isEmptyString($this->getAccessToken())) {
+      $this->debug("AccessToken is empty, can not request anything");
       return false;
     }
+    $headers = $orgHeaders;
     array_push($headers,"Authorization: Bearer ".$this->getAccessToken());
     $result = $this->makeRequest($url, $method, $params, $headers);
     if((strpos($result, 'The access token provided has expired') !== false)) {
-      $this->refreshAccessToken();
-      $result = $this->makeRequest($url, $method, $params, $headers);
+      $this->debug("The accessToken was expired, trying to do a refresh...");
+      if($this->refreshAccessToken()) {
+        $this->debug("New accessToken recieved, trying the authorized request again.");
+        $headers = $orgHeaders;
+        array_push($headers,"Authorization: Bearer ".$this->getAccessToken());
+        $result = $this->makeRequest($url, $method, $params, $headers);
+      }
     }
     return $result;
   }
@@ -472,6 +490,7 @@ abstract class EtalioLoginBase
    * @return string The response text
    */
   protected function makeRequest($url, $method = "GET", Array $params = [], Array $headers=[]) {
+    $this->debug("Making request: ".$method." ".$url);
     $ch = curl_init();
     $opts = $this->curlOpts;
     $opts[CURLOPT_CUSTOMREQUEST] = $method;
@@ -503,7 +522,7 @@ abstract class EtalioLoginBase
         $regex = '/Failed to connect to ([^:].*): Network is unreachable/';
         if (preg_match($regex, curl_error($ch), $matches)) {
           if (strlen(@inet_pton($matches[1])) === 16) {
-            self::errorLog('Invalid IPv6 configuration on server, '.
+            $this->errorLog('Invalid IPv6 configuration on server, '.
                            'Please disable or get native IPv6 on your server.');
             self::$curlOpts[CURLOPT_IPRESOLVE] = CURL_IPRESOLVE_V4;
             curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
@@ -511,7 +530,7 @@ abstract class EtalioLoginBase
           }
         }
     }
-    if($this->debug) self::errorLog("Data recieved from ".$url.": ".$result);
+    $this->debug("Data recieved from ".$method.$url.": ".$result);
     if ($result === false) {
       $e = new EtalioApiException([
         'error_code' => curl_errno($ch),
@@ -589,21 +608,36 @@ abstract class EtalioLoginBase
    *
    * @param string $msg Log message
    */
-  protected static function errorLog($msg) {
+  protected function errorLog($msg) {
     // disable error log if we are running in a CLI environment
     // @codeCoverageIgnoreStart
-    if (php_sapi_name() != 'cli') {
+    if ($this->debug && php_sapi_name() != 'cli') {
       error_log($msg);
     }
     // uncomment this if you want to see the errors on the page
     // print 'error_log: '.$msg."\n";
     // @codeCoverageIgnoreEnd
   }
-
+  protected function debug($msg) {
+    // disable error log if we are running in a CLI environment
+    // @codeCoverageIgnoreStart
+    if ($this->debug && php_sapi_name() != 'cli') {
+      $date = date('Y-m-d H:i:s');
+      $log = "[etalio-sdk][".self::VERSION."][debug][".$date."]".$msg."\n";
+      $out = fopen('php://stderr', 'w');
+      fwrite($out,$log);
+      fflush($out);
+      fclose($out);
+    }
+    // uncomment this if you want to see the errors on the page
+    // print 'error_log: '.$msg."\n";
+    // @codeCoverageIgnoreEnd
+  }
   /**
    * Destroy the current session
    */
   public function destroySession() {
+    self::log("Destroying session");
     $this->accessToken = null;
     $this->refreshToken = null;
     $this->code = null;
@@ -618,7 +652,7 @@ abstract class EtalioLoginBase
     //     setcookie($cookie_name, '', 1, '/', '.'.$base_domain);
     //   } else {
     //     // @codeCoverageIgnoreStart
-    //     self::errorLog(
+    //     $this->errorLog(
     //       'There exists a cookie that we wanted to clear that we couldn\'t '.
     //       'clear because headers was already sent. Make sure to do the first '.
     //       'API call before outputing anything.'
