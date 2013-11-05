@@ -33,7 +33,7 @@ abstract class EtalioLoginBase
   /**
    * Version of this SDK
    */
-  const VERSION = '0.2.6';
+  const VERSION = '0.2.7';
 
   /**
    * Default options for curl.
