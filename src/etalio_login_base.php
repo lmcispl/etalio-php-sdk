@@ -389,8 +389,6 @@ abstract class EtalioLoginBase
     }
 
     $response_params = json_decode($access_token_response,true);
-    // $accessToken = $response_params['access_token'];
-    // $refreshToken = $response_params['refresh_token'];
     if (!isset($response_params['access_token']) || !isset($response_params['refresh_token'])) {
       return false;
     }
@@ -436,14 +434,12 @@ abstract class EtalioLoginBase
     }
 
     $response_params = json_decode($access_token_response,true);
-    $accessToken = $response_params['access_token'];
-    $refreshToken = $response_params['refresh_token'];
-    if (!isset($accessToken) || !isset($refreshToken)) {
+    if (!isset($response_params['access_token']) || !isset($response_params['refresh_token'])) {
       return false;
     }
-    $this->setAccessToken($accessToken);
-    $this->setRefreshToken($refreshToken);
-    return $accessToken;
+    $this->setAccessToken($response_params['access_token']);
+    $this->setRefreshToken($response_params['refresh_token']);
+    return $response_params['access_token'];
   }
 
   /**
@@ -530,7 +526,7 @@ abstract class EtalioLoginBase
           }
         }
     }
-    $this->debug("Data recieved from ".$method.$url.": ".$result);
+    $this->debug("Data recieved from ".$method." ".$url.": ".$result);
     if ($result === false) {
       $e = new EtalioApiException([
         'error_code' => curl_errno($ch),
