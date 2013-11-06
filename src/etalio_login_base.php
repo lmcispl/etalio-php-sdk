@@ -33,7 +33,7 @@ abstract class EtalioLoginBase
   /**
    * Version of this SDK
    */
-  const VERSION = '0.2.7';
+  const VERSION = '0.2.8';
 
   /**
    * Default options for curl.
@@ -64,13 +64,13 @@ abstract class EtalioLoginBase
   protected $state;
 
   /**
-   * The OAuth access token received in exchange for a valid authorization
-   * code.  null means the access token has yet to be determined.
+   * The OAuth access_token received in exchange for a valid authorization
+   * code.  null means the access_token has yet to be determined.
    */
   protected $accessToken;
 
   /**
-   * The refreshtoken connected to the access token
+   * The refreshtoken connected to the access_token
    */
   protected $refreshToken;
 
@@ -160,11 +160,18 @@ abstract class EtalioLoginBase
    * AuthenticateUser, the main entry for the handshake
    */
   public function authenticateUser() {
-    if(!isset($this->accessToken) && !isset($this->refresh_token)) {
+    $this->debug("Authentcating user");
+    if($this->isEmptyString([$this->accessToken,$this->refreshToken])) {
+      $this->debug("Trying to authenticate user from code");
       return $this->getAccessTokenFromCode();
-    } elseif (isset($this->refreshToken)) {
+    } elseif (!$this->isEmptyString($this->refreshToken)) {
+      $this->debug("No access_token but a refresh_token, trying to refresh...");
       return $this->refreshAccessToken();
+    } else {
+      $this->debug("No access_token or refresh_token");
+      return false;
     }
+    $this->debug("New access_token: ".$this->accessToken);
     return $this->accessToken;
   }
 
@@ -181,7 +188,7 @@ abstract class EtalioLoginBase
   public function apiCall($path, $method = 'GET', Array $params = [], Array $headers = []) {
     $this->debug("Calling API: ".$path);
     if($this->isEmptyString($this->accessToken)) {
-      $this->debug("Empty access token, can not access API");
+      $this->debug("Empty access_token, can not access API");
       return false;
     }
     //If no method is defined but params, move arguments one step
@@ -252,9 +259,9 @@ abstract class EtalioLoginBase
   }
 
   /**
-   * Determines the access token that should be used for API calls.
+   * Determines the access_token that should be used for API calls.
    *
-   * @return string The access token
+   * @return string The access_token
    */
   public function getAccessToken() {
     if($this->accessToken == null)
@@ -269,16 +276,16 @@ abstract class EtalioLoginBase
    *************************************************************************/
 
   /**
-   * Stores the refresh token in both object and persistent store
-   * @param string $token the refresh token
+   * Stores the refresh_token in both object and persistent store
+   * @param string $token the refresh_token
    */
   protected function setRefreshToken($token) {
     $this->refreshToken = $token;
     $this->setPersistentData('refresh_token',$token);
   }
   /**
-   * Stores the access token in both object and persistent store
-   * @param string $token the access token
+   * Stores the access_token in both object and persistent store
+   * @param string $token the access_token
    */
   protected function setAccessToken($token) {
     $this->accessToken = $token;
@@ -286,13 +293,13 @@ abstract class EtalioLoginBase
   }
 
   /**
-   * Determines and returns the user access token, first using
+   * Determines and returns the user access_token, first using
    * the signed request if present, and then falling back on
    * the authorization code if present.  The intent is to
-   * return a valid user access token, or false if one is determined
+   * return a valid user access_token, or false if one is determined
    * to not be available.
    *
-   * @return string A valid user access token, or false if one
+   * @return string A valid user access_token, or false if one
    *                could not be determined.
    */
   protected function getAccessTokenFromCode() {
@@ -350,15 +357,15 @@ abstract class EtalioLoginBase
   }
 
   /**
-   * Requests to exchange the OAuth code for access and refresh token
+   * Requests to exchange the OAuth code for access and refresh_token
    * Stores both values using their setters
    *
    * @param string $code The code from an oauth handshake
    *
-   * @return string $accessToken the access token
+   * @return string $accessToken the access_token
    */
   protected function requestAccessTokenFromCode($code) {
-    $this->debug("Requesting access token from code");
+    $this->debug("Requesting access_token from code");
     if ($this->isEmptyString([$code,$this->appId,$this->appSecret])) {
       $this->debug("Code, AppId or AppSecret is empty, can not request code.");
       return false;
@@ -381,7 +388,7 @@ abstract class EtalioLoginBase
         );
     } catch (EtalioApiException $e) {
       // most likely that user very recently revoked authorization.
-      // In any event, we don't have an access token, so say so.
+      // In any event, we don't have an access_token, so say so.
       return false;
     }
 
@@ -400,14 +407,14 @@ abstract class EtalioLoginBase
 
   /**
    * Requests to exchange the refreshToken stored in the persistent store for
-   * a new access token. Stores both values using their setters
+   * a new access_token. Stores both values using their setters
    *
-   * @return string $accessToken the new access token
+   * @return string $accessToken the new access_token
    */
   protected function refreshAccessToken() {
-    $this->debug("Refreshing accessToken: ".$this->accessToken);
-    if($this->isEmptyString([$this->accessToken,$this->refreshToken])) {
-      $this->debug("AccessToken or refreshToken is empty, can not refresg accessToken.");
+    $this->debug("Refreshing accessToken: ".$this->accessToken." with: ".$this->refreshToken);
+    if($this->isEmptyString($this->refreshToken)) {
+      $this->debug("RefreshToken is empty, can not refresh accessToken.");
       return false;
     }
     try {
@@ -418,7 +425,7 @@ abstract class EtalioLoginBase
                   'client_secret' => $this->appSecret,
                   // 'redirect_uri' => $this->redirectUri,
                   'refresh_token' => $this->refreshToken,
-                  'access_token' => $this->accessToken,
+                  // 'access_token' => $this->accessToken,
                   'grant_type' => 'refresh_token',
                 ];
       var_dump($params);
@@ -426,7 +433,7 @@ abstract class EtalioLoginBase
         $this->makeRequest($this->getUrl('token'),"POST",$params);
     } catch (EtalioApiException $e) {
       // most likely that user very recently revoked authorization.
-      // In any event, we don't have an access token, so say so.
+      // In any event, we don't have an access_token, so say so.
       return false;
     }
 
@@ -462,7 +469,7 @@ abstract class EtalioLoginBase
     $headers = $orgHeaders;
     array_push($headers,"Authorization: Bearer ".$this->getAccessToken());
     $result = $this->makeRequest($url, $method, $params, $headers);
-    if((strpos($result, 'The access token provided has expired') !== false)) {
+    if((strpos($result, 'The access_token provided has expired') !== false)) {
       $this->debug("The accessToken was expired, trying to do a refresh...");
       if($this->refreshAccessToken()) {
         $this->debug("New accessToken recieved, trying the authorized request again.");
@@ -570,7 +577,7 @@ abstract class EtalioLoginBase
 
   /**
    * Analyzes the supplied result to see if it was thrown
-   * because the access token is no longer valid.  If that is
+   * because the access_token is no longer valid.  If that is
    * the case, then we destroy the session.
    *
    * @param $result array A record storing the error message returned
@@ -586,9 +593,9 @@ abstract class EtalioLoginBase
         // REST server errors are just Exceptions
       case 'Exception':
         $message = $e->getMessage();
-        if ((strpos($message, 'Error validating access token') !== false) ||
-            (strpos($message, 'Invalid OAuth access token') !== false) ||
-            (strpos($message, 'An active access token must be used') !== false)
+        if ((strpos($message, 'Error validating access_token') !== false) ||
+            (strpos($message, 'Invalid OAuth access_token') !== false) ||
+            (strpos($message, 'An active access_token must be used') !== false)
         ) {
           $this->destroySession();
         }
@@ -633,7 +640,7 @@ abstract class EtalioLoginBase
    * Destroy the current session
    */
   public function destroySession() {
-    self::log("Destroying session");
+    $this->debug("Destroying session");
     $this->accessToken = null;
     $this->refreshToken = null;
     $this->code = null;
