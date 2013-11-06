@@ -1,13 +1,18 @@
 <?php
 namespace Etalio;
 require_once "etalio_base.php";
-require_once "models/profile.php";
 
 /**
  * Extends the EtalioLogin class and adds helper methods for the Etalio Api
  */
 abstract class EtalioApi extends EtalioBase
 {
+
+  /**
+   * APi version
+   */
+  const API_VERSION = "v1";
+
   protected $currentProfile;
 
   /**
@@ -20,9 +25,9 @@ abstract class EtalioApi extends EtalioBase
   public function __construct(Array $config = []) {
     parent::__construct($config);
     $this->domainMap = array_merge($this->domainMap, [
-      'myprofile'   => self::BASE_URL . '/' . self::API_VERSION . '/profile/me',
-      'profile'   => self::BASE_URL . '/' . self::API_VERSION . '/profile',
-      'apps'      => self::BASE_URL . '/' . self::API_VERSION . '/user/applications',
+      'myprofile'         => self::BASE_URL . '/' . self::API_VERSION . '/profile/me',
+      'profile'           => self::BASE_URL . '/' . self::API_VERSION . '/profile',
+      'applications'      => self::BASE_URL . '/' . self::API_VERSION . '/user/applications',
     ]);
   }
 
@@ -30,8 +35,56 @@ abstract class EtalioApi extends EtalioBase
     return ($this->getCurrentProfile())?true:false;
   }
 
-  public function getApplications($userId){
+  public function getCurrentProfile(){
+    if(!isset($this->currentProfile)) {
+      $profile = $this->apiCall('myprofile');
+      if($profile && isset($profile['id'])) {
+        $this->currentProfile = $profile;
+      } else {
+        return false;
+      }
+    }
+    return (Array)$this->currentProfile;
+  }
 
+  public function updateCurrentProfile(Array $profile){
+    return $this->apiCall('myprofile','PUT',$profile);
+  }
+
+  public function getCurrentProfileApplications(){
+
+  }
+
+  public function deleteCurrentProfileApplication($applicationId){
+
+  }
+
+  public function getProfile($profileId){
+    $this->setDomainPath('profile-'.$profileId,$this->domainMap['profile']."/".$profileId);
+    $profile = $this->apiCall('profile-'.$profileId);
+    if($profile && isset($profile['id'])) {
+      return $profile;
+    }
+    return false;
+  }
+
+  public function createProfile($payload){
+
+  }
+
+  public function updateProfile($profileId, $payload){
+
+  }
+
+  public function getProfileApplications($profileId){
+
+  }
+
+  public function getApplications($userId){
+    $app = $this->apiCall('applications',['user_id' => $userId]); //TODO correct url
+    if(isset($app['id']))
+      return $app;
+    return false;
   }
 
   public function getApplication($id){
@@ -78,47 +131,10 @@ abstract class EtalioApi extends EtalioBase
 
   }
 
-  public function getCurrentProfile(){
-    if(!isset($this->currentProfile)) {
-      $profile = $this->apiCall('myprofile');
-      if($profile) {
-        $this->currentProfile = new \Etalio\Models\Profile($profile);
-      } else {
-        return false;
-      }
-    }
-    return $this->currentProfile;
-  }
-
-  public function updateCurrentProfile(){
-
-  }
-
-  public function getCurrentProfileApplications(){
-
-  }
-
-  public function deleteCurrentProfileApplication($applicationId){
-
-  }
-
-  public function getProfile($profileId){
+  private function setDomainPath($key,$value) {
     $this->domainMap = array_merge($this->domainMap, [
-      'profile-'.$profileId   => $this->domainMap['profile']."/".$profileId,
+      $key => $value,
     ]);
-    return new \Etalio\Models\Profile($this->apiCall('profile-'.$profileId));
-  }
-
-  public function createProfile($payload){
-
-  }
-
-  public function updateProfile($profileId, $payload){
-
-  }
-
-  public function getProfileApplications($profileId){
-
   }
 }
 ?>

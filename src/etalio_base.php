@@ -25,11 +25,6 @@ abstract class EtalioBase
   const BASE_URL = "https://api-etalio.3fs.si";
 
   /**
-   * APi version
-   */
-  const API_VERSION = "v1";
-
-  /**
    * Version of this SDK
    */
   const VERSION = '0.3.0';
@@ -120,10 +115,10 @@ abstract class EtalioBase
 
     //Populate with bare minimum of Etalio functionality, add more in sub classes
     $this->domainMap = array(
-      'api'       => self::BASE_URL,
-      'www'       => 'http://www.etalio.com',
-      'oauth2'    => self::BASE_URL . '/oauth2',
-      'token'     => self::BASE_URL . '/oauth2/token',
+      'api'               => self::BASE_URL,
+      'www'               => 'http://www.etalio.com',
+      'oauth2'            => self::BASE_URL . '/oauth2',
+      'token'             => self::BASE_URL . '/oauth2/token',
     );
 
     $this->curlOpts = array(
@@ -444,7 +439,6 @@ abstract class EtalioBase
                   'refresh_token' => $this->refreshToken,
                   'grant_type' => 'refresh_token',
                 ];
-      var_dump($params);
       $access_token_response =
         $this->makeRequest($this->getUrl('token'),"POST",$params);
     } catch (EtalioApiException $e) {
