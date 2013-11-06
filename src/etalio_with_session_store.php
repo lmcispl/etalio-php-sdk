@@ -1,26 +1,26 @@
 <?php
 namespace Etalio;
-require_once "etalio_login_base.php";
+require_once "etalio_api.php";
 
 /**
  * Extends the EtalioLoginBase class with the intent of using
  * PHP sessions to store user ids and access tokens.
  */
-class EtalioLogin extends EtalioLoginBase
+class EtalioWithSessionStore extends EtalioApi
 {
   // We can set this to a high number because the main session
   // expiration will trump this.
   const ETALIOSS_COOKIE_EXPIRE = 31556926; // 1 year
 
   // Keys we support to store in the persistent data
-  protected static $kSupportedKeys = array('state', 'access_token', 'user_id', 'refresh_token');
+  protected static $kSupportedKeys = array('state', 'access_token', 'refresh_token');
 
   /**
    * Identical to the parent constructor, except that
    * we start a PHP session to store the user ID and
    * access token if during the course of execution
    * we discover them.
-   * @see EtalioLoginBase::__construct in etalio.php
+   * @see EtalioApi::__construct in etalio_api.php
    */
   public function __construct(Array $config = []) {
     if (!session_id()) {
@@ -32,8 +32,7 @@ class EtalioLogin extends EtalioLoginBase
   /**
    * Provides the implementations of the inherited abstract
    * methods.  The implementation uses PHP sessions to maintain
-   * a store for authorization codes, user ids, CSRF states, and
-   * access tokens.
+   * a store for CSRF states, refresh tokens and access tokens.
    */
   protected function setPersistentData($key, $value) {
     $this->debug("Setting persistent data: ".$key.":".$value);

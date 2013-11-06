@@ -91,7 +91,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testGetLoginURL() {
-    $etalio = new Etalio(array(
+    $etalio = new EtalioWithSessionStore(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
       'redirect_uri' => self::REDIRECT_URI,
@@ -117,7 +117,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testGetLoginURLWithExtraParams() {
-    $etalio = new Etalio(array(
+    $etalio = new EtalioWithSessionStore(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
       'redirect_uri' => self::REDIRECT_URI,
@@ -146,7 +146,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testGetLoginURLWithScopeParamsAsArray() {
-    $etalio = new Etalio(array(
+    $etalio = new EtalioWithSessionStore(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
       'redirect_uri' => self::REDIRECT_URI,
@@ -508,43 +508,6 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
     $this->assertFalse($etalio->publicGetPersistentData($key));
   }
 
-
-
-  public function testHttpHost() {
-    $real = 'foo.com';
-    $_SERVER['HTTP_HOST'] = $real;
-    $_SERVER['HTTP_X_FORWARDED_HOST'] = 'evil.com';
-    $etalio = new PersistentETALIOPublic([
-          'appId'  => self::APP_ID,
-          'secret' => self::SECRET,
-          'redirect_uri' => self::REDIRECT_URI,
-      ]);
-    $this->assertEquals($real, $etalio->publicGetHttpHost());
-  }
-
-  public function testHttpProtocol() {
-    $_SERVER['HTTPS'] = 'on';
-    $_SERVER['HTTP_X_FORWARDED_PROTO'] = 'http';
-    $etalio = new PersistentETALIOPublic(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-      'redirect_uri' => self::REDIRECT_URI,
-    ));
-    $this->assertEquals('https', $etalio->publicGetHttpProtocol());
-  }
-
-  public function testHttpProtocolForwardedSecure() {
-    $_SERVER['HTTPS'] = 'on';
-    $_SERVER['HTTP_X_FORWARDED_PROTO'] = 'https';
-    $etalio = new PersistentETALIOPublic(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-      'redirect_uri' => self::REDIRECT_URI,
-      'trustForwarded' => true,
-    ));
-    $this->assertEquals('https', $etalio->publicGetHttpProtocol());
-  }
-
   public function provideEndsWith() {
     return array(
       array('', '', true),
@@ -620,7 +583,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 }
 
-class TransientEtalio extends EtalioLoginBase {
+class TransientEtalio extends EtalioBase {
   protected function setPersistentData($key, $value) {}
   protected function getPersistentData($key, $default = false) {
     return $default;
@@ -666,7 +629,7 @@ class ETALIORecordMakeRequest extends TransientEtalio {
   }
 }
 
-class PersistentETALIOPublic extends EtalioLogin {
+class PersistentETALIOPublic extends EtalioWithSessionStore {
   public function publicParseSignedRequest($input) {
     return $this->parseSignedRequest($input);
   }
@@ -698,17 +661,9 @@ class PersistentETALIOPublic extends EtalioLogin {
   public function publicGetSharedSessionCookieName() {
     return $this->getSharedSessionCookieName();
   }
-
-  public function publicGetHttpHost() {
-    return $this->getHttpHost();
-  }
-
-  public function publicGetHttpProtocol() {
-    return $this->getHttpProtocol();
-  }
 }
 
-class ETALIOCode extends EtalioLogin {
+class ETALIOCode extends EtalioWithSessionStore {
   public function publicGetCode() {
     return $this->getCodeFromRequest();
   }

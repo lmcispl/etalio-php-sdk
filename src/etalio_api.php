@@ -1,15 +1,22 @@
 <?php
 namespace Etalio;
-require_once "etalio_login.php";
+require_once "etalio_base.php";
 require_once "models/profile.php";
 
 /**
  * Extends the EtalioLogin class and adds helper methods for the Etalio Api
  */
-class Etalio extends EtalioLogin
+abstract class EtalioApi extends EtalioBase
 {
   protected $currentProfile;
 
+  /**
+   * Identical to the parent constructor, except that
+   * we start a PHP session to store the user ID and
+   * access token if during the course of execution
+   * we discover them.
+   * @see EtalioBase::__construct in etalio_base.php
+   */
   public function __construct(Array $config = []) {
     parent::__construct($config);
     $this->domainMap = array_merge($this->domainMap, [
@@ -19,8 +26,8 @@ class Etalio extends EtalioLogin
     ]);
   }
 
-  public function isProfileAuthenticated(){
-    return $this->getCurrentProfile() != null;
+  public function isAuthenticated(){
+    return ($this->getCurrentProfile())?true:false;
   }
 
   public function getApplications($userId){
