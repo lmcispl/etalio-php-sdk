@@ -25,11 +25,12 @@ abstract class EtalioApi extends EtalioBase
   public function __construct(Array $config = []) {
     parent::__construct($config);
     $this->domainMap = array_merge($this->domainMap, [
-      'myprofile'         => self::BASE_URL . '/' . self::API_VERSION . '/profile/me',
-      'profile'           => self::BASE_URL . '/' . self::API_VERSION . '/profile',
-      'application'       => self::BASE_URL . '/' . self::API_VERSION . '/application',
-      'applications'      => self::BASE_URL . '/' . self::API_VERSION . '/applications',
-      'applicationKeys'   => self::BASE_URL . '/' . self::API_VERSION . '/applications',
+      'myprofile'           => self::BASE_URL . '/' . self::API_VERSION . '/profile/me',
+      'profile'             => self::BASE_URL . '/' . self::API_VERSION . '/profile',
+      'profileApplications' => self::BASE_URL . '/' . self::API_VERSION . '/profile',
+      'application'         => self::BASE_URL . '/' . self::API_VERSION . '/application',
+      'applications'        => self::BASE_URL . '/' . self::API_VERSION . '/applications',
+      'applicationKeys'     => self::BASE_URL . '/' . self::API_VERSION . '/applications',
 
     ]);
   }
@@ -83,10 +84,10 @@ abstract class EtalioApi extends EtalioBase
 
   }
 
-  public function getApplications($userId){
-    $app = $this->apiCall('applications',['user_id' => $userId]); //TODO correct url
-    if(isset($app['id']))
-      return $app;
+  public function getApplications(){
+    $apps = $this->apiCall('applications');
+    if(isset($apps) && is_array($apps))
+      return $apps;
     return false;
   }
 
