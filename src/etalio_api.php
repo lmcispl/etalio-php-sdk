@@ -27,7 +27,10 @@ abstract class EtalioApi extends EtalioBase
     $this->domainMap = array_merge($this->domainMap, [
       'myprofile'         => self::BASE_URL . '/' . self::API_VERSION . '/profile/me',
       'profile'           => self::BASE_URL . '/' . self::API_VERSION . '/profile',
-      'applications'      => self::BASE_URL . '/' . self::API_VERSION . '/user/applications',
+      'application'       => self::BASE_URL . '/' . self::API_VERSION . '/application',
+      'applications'      => self::BASE_URL . '/' . self::API_VERSION . '/applications',
+      'applicationKeys'   => self::BASE_URL . '/' . self::API_VERSION . '/applications',
+
     ]);
   }
 
@@ -60,7 +63,7 @@ abstract class EtalioApi extends EtalioBase
   }
 
   public function getProfile($profileId){
-    $this->setDomainPath('profile-'.$profileId,$this->domainMap['profile']."/".$profileId);
+    $this->setDomainPath('profile-'.$profileId, $this->domainMap['profile']."/".$profileId);
     $profile = $this->apiCall('profile-'.$profileId);
     if($profile && isset($profile['id'])) {
       return $profile;
@@ -88,7 +91,12 @@ abstract class EtalioApi extends EtalioBase
   }
 
   public function getApplication($id){
-
+    $this->setDomainPath('application-'.$id, $this->domainMap['application']."/".$id);
+    $application = $this->apiCall('application-'.$id);
+    if($application && isset($application['id'])) {
+      return $application;
+    }
+    return false;
   }
 
   public function createApplication($payload){
@@ -127,8 +135,13 @@ abstract class EtalioApi extends EtalioBase
 
   }
 
-  public function getApplicationKeys($applicationId){
-
+  public function getApplicationKeys($id){
+    $this->setDomainPath('application-keys-'.$id, $this->domainMap['application']."/".$id."/keys");
+    $keys = $this->apiCall('application-keys-'.$id);
+    if($keys && isset($keys) && is_array($keys)) {
+      return $keys;
+    }
+    return false;
   }
 
   private function setDomainPath($key,$value) {
