@@ -101,15 +101,34 @@ abstract class EtalioApi extends EtalioBase
   }
 
   public function createApplication($payload){
-
+    $application = $this->apiCall('applications', "POST", $payload, [ parent::JSON_CONTENT_TYPE ]);
+    if($application && isset($application)){
+      return $application;
+    }
+    return false;
   }
 
-  public function updateApplication($applicationId, $payload){
-
+  public function updateApplication($id, $payload){
+    $this->setDomainPath('application-'.$id, $this->domainMap['application']."/".$id);
+    $application = $this->apiCall('application-'.$id, "PUT", $payload, [ parent::JSON_CONTENT_TYPE ]);
+    if($application && isset($application)){
+      return $application;
+    }
+    return false;
   }
 
-  public function deleteApplication($applicationId){
-
+  /**
+   * Deletes the application
+   *
+   * @param id the application to delete
+   */
+  public function deleteApplication($id){
+    $this->setDomainPath('application-'.$id, $this->domainMap['application']."/".$id);
+    $res = $this->apiCall('application-'.$id, "DELETE");
+    if($res === NULL){
+      return true;
+    }
+    return false;
   }
 
   public function setApplicationImage($applicationId, $image){
