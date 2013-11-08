@@ -35,6 +35,11 @@ abstract class EtalioBase
   const EXPIRED_ACCESS_TOKEN_STRING = 'The access token provided has expired';
 
   /**
+   * The JSON content type header
+   */
+  const JSON_CONTENT_TYPE = 'Content-Type: application/json';
+
+  /**
    * Default options for curl.
    *
    * @var Array
@@ -216,8 +221,9 @@ abstract class EtalioBase
       }
     }
     $result = json_decode($this->authorizedRequest(
-      $this->getUrl($path, $params),
+      $this->getUrl($path, ($method == 'GET')?$params:[]),
       $method,
+      $params,
       $headers
     ), true);
 
@@ -469,22 +475,20 @@ abstract class EtalioBase
    * @throws EtalioApiException   If error is thrown
    * @return string               The decoded response object
    */
-  protected function authorizedRequest($url, $method = "GET", Array $params = [], Array $orgHeaders=[]) {
-    $this->debug("Making an authorized request using token: ".$this->accessToken." ");
+  protected function authorizedRequest($url, $method = "GET", Array $params = [], Array $headers=[]) {
+    $this->debug("Making an authorized request using token: ".$this->accessToken);
     if($this->isEmptyString($this->getAccessToken())) {
       $this->debug("AccessToken is empty, can not request anything");
       return false;
     }
-    $headers = $orgHeaders;
-    array_push($headers,"Authorization: Bearer ".$this->getAccessToken());
-    $result = $this->makeRequest($url, $method, $params, $headers);
+    $result = $this->makeRequest($url, $method, $params,
+      array_merge($headers,["Authorization: Bearer ".$this->getAccessToken()]));
     if((strpos($result, self::EXPIRED_ACCESS_TOKEN_STRING) !== false)) {
       $this->debug("The accessToken was expired, trying to do a refresh...");
       if($this->refreshAccessToken()) {
         $this->debug("New accessToken recieved, trying the authorized request again.");
-        $headers = $orgHeaders;
-        array_push($headers,"Authorization: Bearer ".$this->getAccessToken());
-        $result = $this->makeRequest($url, $method, $params, $headers);
+        $result = $this->makeRequest($url, $method, $params,
+          array_merge($headers,["Authorization: Bearer ".$this->getAccessToken()]));
       }
     }
     return $result;
@@ -508,8 +512,17 @@ abstract class EtalioBase
     $opts[CURLOPT_CUSTOMREQUEST] = $method;
     // If method is POST store all parameters as POST Fields
     // instead of URL parameters
-    if($method == "POST") {
-      $opts[CURLOPT_POSTFIELDS] = http_build_query($params, null, '&');
+    if($method == "POST" || $method == "PUT") {
+      if(in_array(self::JSON_CONTENT_TYPE, $headers)) {
+        $data_string =json_encode($params);
+        $this->debug("Posting json data: ".$data_string);
+        $opts[CURLOPT_POSTFIELDS] = $data_string;
+        $headers = array_merge($headers, ['Content-Length: ' . strlen($data_string)]);
+      } else {
+        $data_string = http_build_query($params, null, '&');
+        $this->debug("Posting data as http query string: ".$data_string);
+        $opts[CURLOPT_POSTFIELDS] =  $data_string;
+      }
       $opts[CURLOPT_URL] = $url;
     } else {
       $opts[CURLOPT_URL] = $url.http_build_query($params, null, '&');
