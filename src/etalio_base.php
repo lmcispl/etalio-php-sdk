@@ -214,12 +214,6 @@ abstract class EtalioBase
       $params = $method;
       $method = 'GET';
     }
-    // json_encode all params values that are not strings
-    foreach ($params as $key => $value) {
-      if (!is_string($value)) {
-        $params[$key] = json_encode($value);
-      }
-    }
     $result = json_decode($this->authorizedRequest(
       $this->getUrl($path, ($method == 'GET')?$params:[]),
       $method,

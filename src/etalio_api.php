@@ -143,22 +143,40 @@ abstract class EtalioApi extends EtalioBase
 
   }
 
-  public function createApplicationKey($applicationId){
-
+  public function createApplicationKey($id, $payload){
+    $keyDomainPath = 'application-'.$id.'-keys';
+    $this->setDomainPath($keyDomainPath, $this->domainMap['application'].'/'.$id.'/keys');
+    $res = $this->apiCall($keyDomainPath, "POST", $payload, [ parent::JSON_CONTENT_TYPE ]);
+    if($res && isset($res)){
+      return $res;
+    }
+    return false;
   }
 
   public function updateApplicationKey($applciationId, $keyId, $payload){
-
+    $keyDomainPath = 'application-'.$applciationId.'-keys';
+    $this->setDomainPath($keyDomainPath, $this->domainMap['application'].'/'.$applciationId.'/key/'.$keyId);
+    $res = $this->apiCall($keyDomainPath, "PUT", $payload, [ parent::JSON_CONTENT_TYPE]);
+    if($res && isset($res)){
+      return $res;
+    }
+    return false;
   }
 
   public function deleteApplicationKey($applicationId, $keyId){
-
+    $path = 'application-'.$applicationId."-key-".$keyId;
+    $this->setDomainPath($path, $this->domainMap['application']."/".$applicationId."/key/".$keyId);
+    $res = $this->apiCall($path, "DELETE");
+    if($res === NULL){
+      return true;
+    }
+    return false;
   }
 
   public function getApplicationKeys($id){
     $this->setDomainPath('application-keys-'.$id, $this->domainMap['application']."/".$id."/keys");
     $keys = $this->apiCall('application-keys-'.$id);
-    if($keys && isset($keys) && is_array($keys)) {
+    if(is_array($keys)) {
       return $keys;
     }
     return false;
