@@ -73,11 +73,21 @@ abstract class EtalioApi extends EtalioBase
   }
 
   public function createProfile($payload){
-
+    $profile = $this->apiCall('profile', "POST", $payload, [ parent::JSON_CONTENT_TYPE ]);
+    if($profile && isset($profile['id'])){
+      return $profile;
+    }
+    return false;
   }
 
   public function updateProfile($profileId, $payload){
-
+    $identifier = 'profile-'.$profileId;
+    $this->setDomainPath($identifier, $this->domainMap['profile']."/".$profileId);
+    $profile = $this->apiCall($identifier, "PUT", $payload, [ parent::JSON_CONTENT_TYPE ]);
+    if($profile && isset($profile['id'])){
+      return $profile;
+    }
+    return false;
   }
 
   public function getProfileApplications($profileId){
