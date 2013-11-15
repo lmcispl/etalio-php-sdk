@@ -24,6 +24,10 @@ abstract class EtalioApi extends EtalioBase
    */
   public function __construct(Array $config = []) {
     parent::__construct($config);
+    $this->createDomainMap();
+  }
+
+  protected function createDomainMap(){
     $this->domainMap = array_merge($this->domainMap, [
       'myprofile'           => self::BASE_URL . '/' . self::API_VERSION . '/profile/me',
       'profile'             => self::BASE_URL . '/' . self::API_VERSION . '/profile',
