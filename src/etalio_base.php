@@ -203,7 +203,7 @@ abstract class EtalioBase
    * @param array     $headers The header data (optional)
    * @return mixed    false or the answer from the api as an associative array
    */
-  public function apiCall($path, $method = 'GET', Array $params = [], Array $headers = []) {
+  public function apiCall($path, $method = 'GET', Array $params = [], Array $headers = [], Array $files = []) {
     $this->debug("Calling API: ".$path);
     if($this->isEmptyString($this->accessToken)) {
       $this->debug("Empty access_token, can not access API");
@@ -218,7 +218,8 @@ abstract class EtalioBase
       $this->getUrl($path, ($method == 'GET')?$params:[]),
       $method,
       $params,
-      $headers
+      $headers,
+      $files
     ), true);
 
     // results are returned, errors are thrown
@@ -469,14 +470,14 @@ abstract class EtalioBase
    * @throws EtalioApiException   If error is thrown
    * @return string               The decoded response object
    */
-  protected function authorizedRequest($url, $method = "GET", Array $params = [], Array $headers=[]) {
+  protected function authorizedRequest($url, $method = "GET", Array $params = [], Array $headers=[], Array $files = []) {
     $this->debug("Making an authorized request using token: ".$this->accessToken);
     if($this->isEmptyString($this->getAccessToken())) {
       $this->debug("AccessToken is empty, can not request anything");
       return false;
     }
     $result = $this->makeRequest($url, $method, $params,
-      array_merge($headers,["Authorization: Bearer ".$this->getAccessToken()]));
+      array_merge($headers,["Authorization: Bearer ".$this->getAccessToken()]), $files);
     if((strpos($result, self::EXPIRED_ACCESS_TOKEN_STRING) !== false)) {
       $this->debug("The accessToken was expired, trying to do a refresh...");
       if($this->refreshAccessToken()) {
@@ -487,6 +488,7 @@ abstract class EtalioBase
     }
     return $result;
   }
+
   /**
    * Makes an HTTP request. This method can be overridden by subclasses if
    * developers want to do fancier things or use something other than curl to
@@ -499,7 +501,7 @@ abstract class EtalioBase
    * @throws EtalioApiException   If error is thrown
    * @return string               The response text unformatted
    */
-  protected function makeRequest($url, $method = "GET", Array $params = [], Array $headers=[]) {
+  protected function makeRequest($url, $method = "GET", Array $params = [], Array $headers=[], Array $files = []) {
     $this->debug("Making request: ".$method." ".$url);
     $ch = curl_init();
     $opts = $this->curlOpts;
@@ -507,14 +509,24 @@ abstract class EtalioBase
     // If method is POST store all parameters as POST Fields
     // instead of URL parameters
     if($method == "POST" || $method == "PUT") {
+
       if(in_array(self::JSON_CONTENT_TYPE, $headers)) {
         $data_string =json_encode($params);
         $this->debug("Posting json data: ".$data_string);
         $opts[CURLOPT_POSTFIELDS] = $data_string;
         $headers = array_merge($headers, ['Content-Length: ' . strlen($data_string)]);
       } else {
-        $data_string = http_build_query($params, null, '&');
-        $this->debug("Posting data as http query string: ".$data_string);
+
+        if(count($files) > 0){
+          $data_string = array_merge([], $params, $files);
+          $this->debug("Posting data as http post data");
+          $opts[CURLOPT_POSTFIELDS] =  $data_string;
+          $this->debug("Posting files with: ".json_encode($data_string));
+        }else{
+          $data_string = http_build_query($params, null, '&');
+          $this->debug("Posting data as http query string: ".$data_string);
+        }
+
         $opts[CURLOPT_POSTFIELDS] =  $data_string;
       }
       $opts[CURLOPT_URL] = $url;
