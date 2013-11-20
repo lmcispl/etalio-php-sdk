@@ -604,7 +604,7 @@ class TransientEtalio extends EtalioBase {
 class ETALIORecordURL extends TransientEtalio {
   private $url;
 
-  protected function _oauthRequest($url, $method = 'GET', Array $params = [], Array $headers = []) {
+  protected function _oauthRequest($url, $method = 'GET', Array $params = [], Array $headers = [], Array $files = []) {
     $this->url = $url;
   }
 
@@ -616,7 +616,7 @@ class ETALIORecordURL extends TransientEtalio {
 class ETALIORecordMakeRequest extends TransientEtalio {
   private $requests = array();
 
-  protected function makeRequest($url, $method = 'GET', Array $params = [], Array $headers = []) {
+  protected function makeRequest($url, $method = 'GET', Array $params = [], Array $headers = [], Array $files = []) {
     $this->requests[] = array(
       'url' => $url,
       'params' => $params,
