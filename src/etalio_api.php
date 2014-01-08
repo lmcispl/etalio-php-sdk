@@ -30,6 +30,7 @@ abstract class EtalioApi extends EtalioBase
   protected function createDomainMap(){
     $this->domainMap = array_merge($this->domainMap, [
       'myprofile'           => self::BASE_URL . '/' . self::API_VERSION . '/profile/me',
+      'profiles'            => self::BASE_URL . '/' . self::API_VERSION . '/profiles',
       'profile'             => self::BASE_URL . '/' . self::API_VERSION . '/profile',
       'profileApplications' => self::BASE_URL . '/' . self::API_VERSION . '/profile',
       'application'         => self::BASE_URL . '/' . self::API_VERSION . '/application',
@@ -65,6 +66,14 @@ abstract class EtalioApi extends EtalioBase
 
   public function deleteCurrentProfileApplication($applicationId){
 
+  }
+
+  public function getProfiles(){
+    $profiles = $this->apiCall('profiles');
+    if($profiles && is_array($profiles)) {
+      return $profiles;
+    }
+    return false;
   }
 
   public function getProfile($profileId){
