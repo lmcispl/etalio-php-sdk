@@ -158,7 +158,13 @@ abstract class EtalioApi extends EtalioBase
     $imageDomainPath = 'application-'.$applicationId.'-image';
     $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/image');
     $files = [];
-    $files['image'] = new \CurlFile($imagePath, $imageType, 'image');
+    if(class_exists("CURLFile")){
+      // If PHP5.5 <
+      $files['image'] = new \CURLFile($imagePath, $imageType, 'image');
+    }else{
+      // PHP5.4
+      $files['image'] = "@".$imagePath.";type=".$imageType.";";
+    }
     $res = $this->apiCall($imageDomainPath, "POST", [], [], $files);
     if($res && isset($res)){
       return $res;
