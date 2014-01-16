@@ -27,7 +27,7 @@ abstract class EtalioBase
   /**
    * Version of this SDK
    */
-  const VERSION = '0.3.2';
+  const VERSION = '0.3.3';
 
   /**
    * The string to look for when an access token has expired
@@ -529,10 +529,8 @@ abstract class EtalioBase
 
         $opts[CURLOPT_POSTFIELDS] =  $data_string;
       }
-      $opts[CURLOPT_URL] = $url;
-    } else {
-      $opts[CURLOPT_URL] = $url.http_build_query($params, null, '&');
     }
+    $opts[CURLOPT_URL] = $url;
     if (isset($opts[CURLOPT_HTTPHEADER])) {
       $opts[CURLOPT_HTTPHEADER] = array_merge($opts[CURLOPT_HTTPHEADER],$headers);
     } else {

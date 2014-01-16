@@ -103,6 +103,35 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
+  public function setProfileImage($profileId, $imagePath, $imageType, $imageName){
+    $imageDomainPath = 'profile-'.$profileId.'-image';
+    $this->setDomainPath($imageDomainPath, $this->domainMap['profile'].'/'.$profileId.'/image');
+    $files = [];
+    if(class_exists("CURLFile")){
+      // If > PHP5.5
+      $files['image'] = new \CURLFile($imagePath, $imageType, 'image');
+    }else{
+      // PHP5.4
+      $files['image'] = "@".$imagePath.";type=".$imageType.";";
+    }
+    $res = $this->apiCall($imageDomainPath, "POST", [], [], $files);
+    if($res && isset($res)){
+      return $res;
+    }
+    return false;
+  }
+
+  public function getProfileImage($profileId, $size){
+    $imageDomainPath = 'profile-'.$profileId.'-image';
+    $this->setDomainPath($imageDomainPath, $this->domainMap['profile'].'/'.$profileId.'/image');
+    $res = $this->apiCall($imageDomainPath, "GET", ['size' => $size]);
+    if($res && isset($res)){
+      return $res;
+    }
+    return false;
+  }
+
+
   public function getProfileApplications($profileId){
 
   }
@@ -225,4 +254,3 @@ abstract class EtalioApi extends EtalioBase
     ]);
   }
 }
-?>
