@@ -36,7 +36,7 @@ abstract class EtalioApi extends EtalioBase
       'application'         => self::BASE_URL . '/' . self::API_VERSION . '/application',
       'applications'        => self::BASE_URL . '/' . self::API_VERSION . '/applications',
       'applicationKeys'     => self::BASE_URL . '/' . self::API_VERSION . '/applications',
-      'categories'          => self::BASE_URL . '/' . self::API_VERSION . '/categories',
+
     ]);
   }
 
@@ -131,13 +131,14 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
+
   public function getProfileApplications($profileId){
 
   }
 
-  public function getApplications(){
-    $apps = $this->apiCall('applications');
-    if(isset($apps) && is_array($apps))
+  public function getApplications($authorUuid = NULL){
+    $apps = $this->apiCall('applications', ['author' => $authorUuid]);
+    if(is_array($apps))
       return $apps;
     return false;
   }
@@ -254,17 +255,6 @@ abstract class EtalioApi extends EtalioBase
     if(is_array($keys)) {
       return $keys;
     }
-    return false;
-  }
-
-  /**
-   * Get list of categories
-   * @return array list of categories
-   */
-  public function getCategories(){
-    $categories = $this->apiCall('categories');
-    if(isset($categories) && is_array($categories))
-      return $categories;
     return false;
   }
 

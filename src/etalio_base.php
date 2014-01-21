@@ -27,7 +27,7 @@ abstract class EtalioBase
   /**
    * Version of this SDK
    */
-  const VERSION = '0.3.3';
+  const VERSION = '0.3.4';
 
   /**
    * The string to look for when an access token has expired
@@ -559,7 +559,7 @@ abstract class EtalioBase
           }
         }
     }
-    $this->debug("Data received from ".$method." ".$url.": ".$result);
+    $this->debug("Data recieved from ".$method." ".$url.": ".$result);
     if ($result === false) {
       $e = new EtalioApiException([
         'error_code' => curl_errno($ch),
