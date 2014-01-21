@@ -559,7 +559,7 @@ abstract class EtalioBase
           }
         }
     }
-    $this->debug("Data recieved from ".$method." ".$url.": ".$result);
+    $this->debug("Data received from ".$method." ".$url.": ".$result);
     if ($result === false) {
       $e = new EtalioApiException([
         'error_code' => curl_errno($ch),

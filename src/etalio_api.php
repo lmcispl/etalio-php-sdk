@@ -265,6 +265,17 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
+  /**
+   * Get list of categories
+   * @return array list of categories
+   */
+  public function getCategories(){
+    $categories = $this->apiCall('categories');
+    if(isset($categories) && is_array($categories))
+      return $categories;
+    return false;
+  }
+
   private function setDomainPath($key,$value) {
     $this->domainMap = array_merge($this->domainMap, [
       $key => $value,
