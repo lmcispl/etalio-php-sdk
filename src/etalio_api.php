@@ -200,14 +200,6 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
-  public function getCategories(){
-    $res = $this->apiCall('categories');
-    if($res && isset($res)){
-      return $res;
-    }
-    return false;
-  }
-
   public function getApplicationImage($applicationId, $size){
     $imageDomainPath = 'application-'.$applicationId.'-image';
     $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/image');
