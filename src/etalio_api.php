@@ -36,7 +36,8 @@ abstract class EtalioApi extends EtalioBase
       'application'         => self::BASE_URL . '/' . self::API_VERSION . '/application',
       'applications'        => self::BASE_URL . '/' . self::API_VERSION . '/applications',
       'applicationKeys'     => self::BASE_URL . '/' . self::API_VERSION . '/applications',
-
+      'categories'          => self::BASE_URL . '/' . self::API_VERSION . '/categories',
+      'scopes'              => self::BASE_URL . '/' . self::API_VERSION . '/scopes',
     ]);
   }
 
@@ -255,6 +256,28 @@ abstract class EtalioApi extends EtalioBase
     if(is_array($keys)) {
       return $keys;
     }
+    return false;
+  }
+
+  /**
+   * Get list of categories
+   * @return array list of categories
+   */
+  public function getCategories(){
+    $categories = $this->apiCall('categories');
+    if(isset($categories) && is_array($categories))
+      return $categories;
+    return false;
+  }
+
+  /**
+   * Get list of scopes
+   * @return array list of scopes
+   */
+  public function getScopes(){
+    $scopes = $this->apiCall('scopes');
+    if(isset($scopes) && is_array($scopes))
+      return $scopes;
     return false;
   }
 
