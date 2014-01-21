@@ -208,6 +208,16 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
+  public function getApplicationImage($applicationId, $size){
+    $imageDomainPath = 'application-'.$applicationId.'-image';
+    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/image');
+    $res = $this->apiCall($imageDomainPath, "GET", ['size' => $size]);
+    if($res && isset($res)){
+      return $res;
+    }
+    return false;
+  }
+
   public function deleteApplicationImage($applicationId){
 
   }
