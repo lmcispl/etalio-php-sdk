@@ -36,7 +36,7 @@ abstract class EtalioApi extends EtalioBase
       'application'         => self::BASE_URL . '/' . self::API_VERSION . '/application',
       'applications'        => self::BASE_URL . '/' . self::API_VERSION . '/applications',
       'applicationKeys'     => self::BASE_URL . '/' . self::API_VERSION . '/applications',
-
+      'categories'          => self::BASE_URL . '/' . self::API_VERSION . '/categories',
     ]);
   }
 
@@ -131,7 +131,6 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
-
   public function getProfileApplications($profileId){
 
   }
@@ -195,6 +194,14 @@ abstract class EtalioApi extends EtalioBase
       $files['image'] = "@".$imagePath.";type=".$imageType.";";
     }
     $res = $this->apiCall($imageDomainPath, "POST", [], [], $files);
+    if($res && isset($res)){
+      return $res;
+    }
+    return false;
+  }
+
+  public function getCategories(){
+    $res = $this->apiCall('categories');
     if($res && isset($res)){
       return $res;
     }
