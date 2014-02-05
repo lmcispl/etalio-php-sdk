@@ -12,6 +12,7 @@ abstract class EtalioApi extends EtalioBase
    * APi version
    */
   const API_VERSION = "v1";
+  const BASE_URL_API = "https://api.etalio.com";
 
   protected $currentProfile;
 
@@ -29,15 +30,15 @@ abstract class EtalioApi extends EtalioBase
 
   protected function createDomainMap(){
     $this->domainMap = array_merge($this->domainMap, [
-      'myprofile'           => self::BASE_URL . '/' . self::API_VERSION . '/profile/me',
-      'profiles'            => self::BASE_URL . '/' . self::API_VERSION . '/profiles',
-      'profile'             => self::BASE_URL . '/' . self::API_VERSION . '/profile',
-      'profileApplications' => self::BASE_URL . '/' . self::API_VERSION . '/profile',
-      'application'         => self::BASE_URL . '/' . self::API_VERSION . '/application',
-      'applications'        => self::BASE_URL . '/' . self::API_VERSION . '/applications',
-      'applicationKeys'     => self::BASE_URL . '/' . self::API_VERSION . '/applications',
-      'categories'          => self::BASE_URL . '/' . self::API_VERSION . '/categories',
-      'scopes'              => self::BASE_URL . '/' . self::API_VERSION . '/scopes',
+      'myprofile'           => self::BASE_URL_API . '/' . self::API_VERSION . '/profile/me',
+      'profiles'            => self::BASE_URL_API . '/' . self::API_VERSION . '/profiles',
+      'profile'             => self::BASE_URL_API . '/' . self::API_VERSION . '/profile',
+      'profileApplications' => self::BASE_URL_API . '/' . self::API_VERSION . '/profile',
+      'application'         => self::BASE_URL_API . '/' . self::API_VERSION . '/application',
+      'applications'        => self::BASE_URL_API . '/' . self::API_VERSION . '/applications',
+      'applicationKeys'     => self::BASE_URL_API . '/' . self::API_VERSION . '/applications',
+      'categories'          => self::BASE_URL_API . '/' . self::API_VERSION . '/categories',
+      'scopes'              => self::BASE_URL_API . '/' . self::API_VERSION . '/scopes',
     ]);
   }
 
