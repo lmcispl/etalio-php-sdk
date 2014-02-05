@@ -102,7 +102,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
     $_SERVER['REQUEST_URI'] = '/unit-tests.php';
     $login_url = parse_url($etalio->getLoginUrl());
     $this->assertEquals($login_url['scheme'], 'https');
-    $this->assertEquals($login_url['host'], 'api-etalio.3fs.si');
+    $this->assertEquals($login_url['host'], 'etalio.com');
     $this->assertEquals($login_url['path'], '/oauth2');
     $expected_login_params =
       array('client_id' => self::APP_ID,
@@ -130,7 +130,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
                           'nonsense' => 'nonsense');
     $login_url = parse_url($etalio->getLoginUrl($extra_params));
     $this->assertEquals($login_url['scheme'], 'https');
-    $this->assertEquals($login_url['host'], 'api-etalio.3fs.si');
+    $this->assertEquals($login_url['host'], 'etalio.com');
     $this->assertEquals($login_url['path'], '/oauth2');
     $expected_login_params =
       array_merge(
@@ -160,7 +160,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
                           'nonsense' => 'nonsense');
     $login_url = parse_url($etalio->getLoginUrl($extra_params));
     $this->assertEquals($login_url['scheme'], 'https');
-    $this->assertEquals($login_url['host'], 'api-etalio.3fs.si');
+    $this->assertEquals($login_url['host'], 'etalio.com');
     $this->assertEquals($login_url['path'], '/oauth2');
     // expect api to flatten array params to comma separated list
     // should do the same here before asserting to make sure API is behaving

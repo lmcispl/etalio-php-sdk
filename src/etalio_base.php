@@ -22,12 +22,12 @@ abstract class EtalioBase
   /**
    * Server Url
    */
-  const BASE_URL = "https://api-etalio.3fs.si";
+  const BASE_URL = "https://etalio.com";
 
   /**
    * Version of this SDK
    */
-  const VERSION = '0.3.4';
+  const VERSION = '0.3.5';
 
   /**
    * The string to look for when an access token has expired
