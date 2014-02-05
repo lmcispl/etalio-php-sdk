@@ -165,7 +165,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
     // expect api to flatten array params to comma separated list
     // should do the same here before asserting to make sure API is behaving
     // correctly;
-    $extra_params['scope'] = implode(',', $scope_params_as_array);
+    $extra_params['scope'] = implode(' ', $scope_params_as_array);
     $expected_login_params =
       array_merge(
         array('client_id' => self::APP_ID,
