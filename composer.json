@@ -3,12 +3,13 @@
     "description": "Etalio PHP SDK",
     "keywords": ["etalio", "sdk"],
     "type": "library",
-    "homepage": "https://github.com/etalio/etalio-php-sdk",
-    "license": "MPL2.0",
+    "homepage": "https://etalio.com",
+    "license": "Apache-2.0",
+    "version": "1.0.0",
     "authors": [
         {
             "name": "Etalio",
-            "homepage": "https://github.com/Etalio/etalio-php-sdk/contributors"
+            "homepage": "https://github.com/Etalio/etalio-php-sdk"
         }
     ],
     "require": {
