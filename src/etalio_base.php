@@ -305,10 +305,10 @@ abstract class EtalioBase
     ), true);
 
     // results are returned, errors are thrown
-    // Don't throw 404
-    if (is_array($result) && isset($result['error']) && $result['errno'] != 404) {
-      $this->throwAPIException($result);
-    }
+    // Return even error message and code
+    // if (is_array($result) && isset($result['error']) && $result['errno'] != 404) {
+      // $this->throwAPIException($result);
+    // }
     return $result;
   }
 

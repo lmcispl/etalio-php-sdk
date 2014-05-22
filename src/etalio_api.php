@@ -57,6 +57,7 @@ abstract class EtalioApi extends EtalioBase
       'categories'          => self::BASE_URL_API . '/' . self::API_VERSION . '/categories',
       'scopes'              => self::BASE_URL_API . '/' . self::API_VERSION . '/scopes',
       'msisdn'              => self::BASE_URL_API . '/' . self::API_VERSION . '/msisdn',
+      'resetPassword'       => self::BASE_URL_API . '/' . self::API_VERSION . '/profile/password-reset',
     ]);
   }
 
@@ -69,6 +70,10 @@ abstract class EtalioApi extends EtalioBase
     if(is_array($status))
       return $status;
     return false;
+  }
+
+  public function resetPassword(Array $params, $method = 'GET') {
+    return $this->apiCall('resetPassword', $method, $params, [ parent::JSON_CONTENT_TYPE ]);
   }
 
   public function getCurrentProfile(){
