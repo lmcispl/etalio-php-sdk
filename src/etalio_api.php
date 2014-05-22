@@ -28,7 +28,8 @@ abstract class EtalioApi extends EtalioBase
    * APi version
    */
   const API_VERSION = "v1";
-  const BASE_URL_API = "https://api.etalio.com";
+  // const BASE_URL_API = "https://api.etalio.com";
+  const BASE_URL_API = "https://api-etalio.3fs.si";
 
   protected $currentProfile;
 
@@ -55,11 +56,19 @@ abstract class EtalioApi extends EtalioBase
       'applicationKeys'     => self::BASE_URL_API . '/' . self::API_VERSION . '/applications',
       'categories'          => self::BASE_URL_API . '/' . self::API_VERSION . '/categories',
       'scopes'              => self::BASE_URL_API . '/' . self::API_VERSION . '/scopes',
+      'msisdn'              => self::BASE_URL_API . '/' . self::API_VERSION . '/msisdn',
     ]);
   }
 
   public function isAuthenticated(){
     return ($this->getCurrentProfile())?true:false;
+  }
+
+  public function handleMsisdn(Array $data){
+    $status = $this->apiCall('msisdn', 'POST', $data, [ parent::JSON_CONTENT_TYPE ]);
+    if(is_array($status))
+      return $status;
+    return false;
   }
 
   public function getCurrentProfile(){
@@ -84,6 +93,15 @@ abstract class EtalioApi extends EtalioBase
 
   public function deleteCurrentProfileApplication($applicationId){
 
+  }
+
+  public function verifyEmail($user_id, $payload){
+    $this->setDomainPath('profile-' . $user_id . '-email-verify', $this->domainMap['profile']."/" . $user_id . "/email-verify");
+    $status = $this->apiCall('profile-' . $user_id . '-email-verify', 'POST', $payload, [parent::JSON_CONTENT_TYPE]);
+    if($status && isset($status['status'])) {
+      return $status;
+    }
+    return false;
   }
 
   public function getProfiles(){
@@ -233,6 +251,34 @@ abstract class EtalioApi extends EtalioBase
 
   }
 
+  public function setApplicationFeaturedImage($applicationId, $imagePath, $imageType, $imageName){
+    $imageDomainPath = 'application-'.$applicationId.'-featured-image';
+    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/featuredImage');
+    $files = [];
+    if(class_exists("CURLFile")){
+      // If PHP5.5 <
+      $files['image'] = new \CURLFile($imagePath, $imageType, 'image');
+    }else{
+      // PHP5.4
+      $files['image'] = "@".$imagePath.";type=".$imageType.";";
+    }
+    $res = $this->apiCall($imageDomainPath, "POST", [], [], $files);
+    if($res && isset($res)){
+      return $res;
+    }
+    return false;
+  }
+
+  public function getApplicationFeaturedImage($applicationId, $size){
+    $imageDomainPath = 'application-'.$applicationId.'-image';
+    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/image');
+    $res = $this->apiCall($imageDomainPath, "GET", ['size' => $size]);
+    if($res && isset($res)){
+      return $res;
+    }
+    return false;
+  }
+
   public function getApplicationKey($applicationId, $keyId){
 
   }
@@ -295,6 +341,14 @@ abstract class EtalioApi extends EtalioBase
     $scopes = $this->apiCall('scopes');
     if(isset($scopes) && is_array($scopes))
       return $scopes;
+    return false;
+  }
+
+  public function doSignin($payload){
+    $res = $this->apiCall('token', "POST", $payload, [ parent::JSON_CONTENT_TYPE ]);
+    if($res && isset($res)){
+      return $res;
+    }
     return false;
   }
 
