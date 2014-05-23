@@ -47,17 +47,18 @@ abstract class EtalioApi extends EtalioBase
 
   protected function createDomainMap(){
     $this->domainMap = array_merge($this->domainMap, [
-      'myprofile'           => self::BASE_URL_API . '/' . self::API_VERSION . '/profile/me',
-      'profiles'            => self::BASE_URL_API . '/' . self::API_VERSION . '/profiles',
-      'profile'             => self::BASE_URL_API . '/' . self::API_VERSION . '/profile',
-      'profileApplications' => self::BASE_URL_API . '/' . self::API_VERSION . '/profile',
-      'application'         => self::BASE_URL_API . '/' . self::API_VERSION . '/application',
-      'applications'        => self::BASE_URL_API . '/' . self::API_VERSION . '/applications',
-      'applicationKeys'     => self::BASE_URL_API . '/' . self::API_VERSION . '/applications',
-      'categories'          => self::BASE_URL_API . '/' . self::API_VERSION . '/categories',
-      'scopes'              => self::BASE_URL_API . '/' . self::API_VERSION . '/scopes',
-      'msisdn'              => self::BASE_URL_API . '/' . self::API_VERSION . '/msisdn',
-      'resetPassword'       => self::BASE_URL_API . '/' . self::API_VERSION . '/profile/password-reset',
+      'myprofile'             => self::BASE_URL_API . '/' . self::API_VERSION . '/profile/me',
+      'profiles'              => self::BASE_URL_API . '/' . self::API_VERSION . '/profiles',
+      'profile'               => self::BASE_URL_API . '/' . self::API_VERSION . '/profile',
+      'profileApplications'   => self::BASE_URL_API . '/' . self::API_VERSION . '/profile',
+      'application'           => self::BASE_URL_API . '/' . self::API_VERSION . '/application',
+      'applications'          => self::BASE_URL_API . '/' . self::API_VERSION . '/applications',
+      'applicationKeys'       => self::BASE_URL_API . '/' . self::API_VERSION . '/applications',
+      'categories'            => self::BASE_URL_API . '/' . self::API_VERSION . '/categories',
+      'scopes'                => self::BASE_URL_API . '/' . self::API_VERSION . '/scopes',
+      'msisdn'                => self::BASE_URL_API . '/' . self::API_VERSION . '/msisdn',
+      'resetPassword'         => self::BASE_URL_API . '/' . self::API_VERSION . '/profile/password-reset',
+      'verifyResetPassword'   => self::BASE_URL_API . '/' . self::API_VERSION . '/profile/password/reset',
     ]);
   }
 
@@ -72,8 +73,13 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
-  public function resetPassword(Array $params, $method = 'GET') {
-    return $this->apiCall('resetPassword', $method, $params, [ parent::JSON_CONTENT_TYPE ]);
+  //Endpoint for just POST 
+  public function resetPassword(Array $params) {
+    return $this->apiCall('resetPassword', 'POST', $params, [ parent::JSON_CONTENT_TYPE ]);
+  }
+
+  public function verifyResetPassword(Array $params, $method = 'GET') {
+    return $this->apiCall('verifyResetPassword', $method, $params, [ parent::JSON_CONTENT_TYPE ]);
   }
 
   public function getCurrentProfile(){
