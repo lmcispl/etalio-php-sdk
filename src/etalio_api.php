@@ -60,6 +60,7 @@ abstract class EtalioApi extends EtalioBase
       'resetPassword'         => self::BASE_URL_API . '/' . self::API_VERSION . '/profile/password-reset',
       'verifyResetPassword'   => self::BASE_URL_API . '/' . self::API_VERSION . '/profile/password/reset',
       'authorize'             => self::BASE_URL_API . '/' . self::API_VERSION . '/oauth2/authorize',
+      'revoke'                => self::BASE_URL_API . '/' . self::API_VERSION . '/oauth2/revoke',
     ]);
   }
 

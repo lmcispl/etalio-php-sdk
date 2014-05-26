@@ -195,24 +195,30 @@ abstract class EtalioBase
    */
   public function authorizeApp(Array $params = []){
     $this->debug('Authorize app');
-    if (!isset($params['key'])) {
+    if (!isset($params['client_id'])) {
       $this->debug('Fail to authorize app: No Application Client Key');
       return false;
     } elseif (!isset($params['state'])) {
       $this->debug('Fail to authorize app: No Application Client State');
       return false;
-    } elseif (!isset($params['redir_uri'])) {
+    } elseif (!isset($params['redirect_uri'])) {
       $this->debug('Fail to authorize app: No Application Client Redirect URI');
       return false;
     }
 
     if ($this->isEmptyString($this->accessToken)) {
-      $this->authenticateTrusted();
+      $this->authenticateUser();
     }
 
-    $this->getAuthorizeCode($params);
+    return $this->apiCall('authorize', 'POST', $params, [ self::JSON_CONTENT_TYPE ]);
 
   }
+
+  public function revokeToken() {
+    $this->revokeAccessToken();
+    $this->revokeRefreshToken();
+  }
+
   /**
    * AuthenticateUser, the main entry for the handshake
    *
@@ -372,6 +378,25 @@ abstract class EtalioBase
    *                     PROTECTED METHODS STARTS HERE                     *
    *************************************************************************/
 
+
+  protected function revokeAccessToken(){
+    $params = array(
+      'token' => $this->accessToken,
+      'token_type_hint' => 'access_token',  
+    );
+    
+    return $this->apiCall('revoke', 'POST', $params);
+  }
+
+  protected function revokeRefreshToken(){
+    $params = array(
+      'token' => $this->refreshToken,
+      'token_type_hint' => 'refresh_token',  
+    );
+    
+    return $this->apiCall('revoke', 'POST', $params);
+  }
+
   /**
    * Stores the refresh_token in both object and persistent store
    *
@@ -391,42 +416,6 @@ abstract class EtalioBase
     $this->setPersistentData('access_token',$token);
   }
 
-  /**
-   *     $params = [
-   *   'key' => $this->appId,
-   *  'state' => $this->state,
-   *   'redir_uri' => $this->redirectUri,
-   * ];
-   * if ($this->requestCode) {
-   *   $params['requestCode'] = $this->requestCode;
-   * } elseif ($this->responseCode) {
-   *   $params['responseCode'] = $this->responseCode;
-   * }
-   */
-  protected function getAuthorizeCode($params){
-
-    try {
-      // need to circumvent json_decode by calling makeRequest
-      // directly, since response isn't JSON format.
-      $access_token_response =
-        $this->makeRequest(
-          $this->getUrl('authorize'),
-          "POST",
-          $params 
-        );
-    } catch (EtalioApiException $e) {
-      // most likely that user very recently revoked authorization.
-      // In any event, we don't have an access_token, so say so.
-      return false;
-    }
-
-    $response_params = json_decode($access_token_response,true);
-    if (!isset($response_params['Location'])) {
-      return false;
-    }
-
-    return $response_params['Location'];
-  }
   /**
    * Determines and returns the user access_token, first using
    * the signed request if present, and then falling back on
