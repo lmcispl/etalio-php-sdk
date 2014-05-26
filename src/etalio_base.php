@@ -141,7 +141,6 @@ abstract class EtalioBase
       'www'               => 'http://www.etalio.com',
       'oauth2'            => self::BASE_URL . '/oauth2',
       'token'             => self::BASE_URL . '/oauth2/token',
-      'authorize'             => self::BASE_URL . '/oauth2/authorize',
     );
 
     $this->curlOpts = array(
@@ -422,11 +421,11 @@ abstract class EtalioBase
     }
 
     $response_params = json_decode($access_token_response,true);
-    if (!isset($response_params['code'])) {
+    if (!isset($response_params['Location'])) {
       return false;
     }
 
-    return $response_params['code'];
+    return $response_params['Location'];
   }
   /**
    * Determines and returns the user access_token, first using
