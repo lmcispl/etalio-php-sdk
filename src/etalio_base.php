@@ -38,7 +38,7 @@ abstract class EtalioBase
   /**
    * Server Url
    */
-  const BASE_URL = "https://etalio.com";
+
 
   /**
    * Version of this SDK
@@ -54,6 +54,12 @@ abstract class EtalioBase
    * The JSON content type header
    */
   const JSON_CONTENT_TYPE = 'Content-Type: application/json';
+
+  /**
+   * Default base url
+   */
+  // protected $baseUrl = "https://api-etalio.3fs.si";
+  protected $baseUrl = "https://etalio.com";
 
   /**
    * Default options for curl.
@@ -133,13 +139,14 @@ abstract class EtalioBase
     if(isset($config['secret']))        $this->setAppSecret($config['secret']);
     if(isset($config['redirect_uri']))  $this->setRedirectUri($config['redirect_uri']);
     if(isset($config['debug']))         $this->debug = $config['debug'];
+    if(isset($config['baseUrl']))       $this->setBaseUrl($config['baseUrl']);
 
     //Populate with bare minimum of Etalio functionality, add more in sub classes
     $this->domainMap = array(
-      'api'               => self::BASE_URL,
+      'api'               => $this->baseUrl,
       'www'               => 'http://www.etalio.com',
-      'oauth2'            => self::BASE_URL . '/oauth2',
-      'token'             => self::BASE_URL . '/oauth2/token',
+      'oauth2'            => $this->baseUrl . '/oauth2',
+      'token'             => $this->baseUrl . '/oauth2/token',
     );
 
     $this->curlOpts = array(
@@ -190,6 +197,35 @@ abstract class EtalioBase
   }
 
   /**
+   * Authorize an app or redirect to grant application
+   */
+  public function authorizeApp(Array $params = []){
+    $this->debug('Authorize app');
+    if (!isset($params['client_id'])) {
+      $this->debug('Fail to authorize app: No Application Client Key');
+      return false;
+    } elseif (!isset($params['state'])) {
+      $this->debug('Fail to authorize app: No Application Client State');
+      return false;
+    } elseif (!isset($params['redirect_uri'])) {
+      $this->debug('Fail to authorize app: No Application Client Redirect URI');
+      return false;
+    }
+
+    if ($this->isEmptyString($this->accessToken)) {
+      $this->authenticateUser();
+    }
+
+    return $this->apiCall('authorize', 'POST', $params, [ self::JSON_CONTENT_TYPE ]);
+
+  }
+
+  public function revokeToken() {
+    $this->revokeAccessToken();
+    $this->revokeRefreshToken();
+  }
+
+  /**
    * AuthenticateUser, the main entry for the handshake
    *
    * @return mixed    false or the access_token
@@ -199,6 +235,47 @@ abstract class EtalioBase
     if($this->isEmptyString([$this->accessToken,$this->refreshToken])) {
       $this->debug("Trying to authenticate user from code");
       return $this->getAccessTokenFromCode();
+      
+    } elseif (!$this->isEmptyString($this->refreshToken)) {
+      $this->debug("No access_token but a refresh_token, trying to refresh...");
+      return $this->refreshAccessToken();
+    } else {
+      $this->debug("No access_token or refresh_token");
+      return false;
+    }
+    $this->debug("New access_token: ".$this->accessToken);
+    return $this->accessToken;
+  }
+
+  /**
+   * Authenticate Trusted app
+   */
+  public function authenticateTrusted() {
+    $this->debug('Authenticate Trusted app');
+    if($this->isEmptyString([$this->accessToken,$this->refreshToken])) {
+      $this->debug("Trying to authenticate Trusted app");
+      return $this->getTrustedAccessToken();
+    } elseif (!$this->isEmptyString($this->refreshToken)) {
+      $this->debug("No access_token but a refresh_token, trying to refresh...");
+      return $this->refreshAccessToken();
+    } else {
+      $this->debug("No access_token or refresh_token");
+      return false;
+    }
+    $this->debug("New access_token: ".$this->accessToken);
+    return $this->accessToken;
+  }
+
+  /**
+   * AuthenticateUserWithCredentials
+   *
+   * @return mixed    false or the access_token
+   */
+  public function authenticateUserByPwd($data) {
+    $this->debug("Authenticating user by password");
+    if($this->isEmptyString([$this->accessToken,$this->refreshToken])) {
+      $this->debug("Trying to authenticate user");
+      return $this->getAccessTokenByPwd($data);
     } elseif (!$this->isEmptyString($this->refreshToken)) {
       $this->debug("No access_token but a refresh_token, trying to refresh...");
       return $this->refreshAccessToken();
@@ -239,10 +316,23 @@ abstract class EtalioBase
     ), true);
 
     // results are returned, errors are thrown
+    // Return even error message and code
     if (is_array($result) && isset($result['error'])) {
       $this->throwAPIException($result);
     }
+
     return $result;
+  }
+
+  /**
+   * Set the Base url.
+   *
+   * @param string $baseUrl Base url
+   * @return EtalioLoginBase
+   */
+  public function setBaseUrl($baseUrl) {
+    $this->baseUrl = $baseUrl;
+    return $this;
   }
 
   /**
@@ -305,6 +395,25 @@ abstract class EtalioBase
   /*************************************************************************
    *                     PROTECTED METHODS STARTS HERE                     *
    *************************************************************************/
+
+
+  protected function revokeAccessToken(){
+    $params = array(
+      'token' => $this->accessToken,
+      'token_type_hint' => 'access_token',  
+    );
+    
+    return $this->apiCall('revoke', 'POST', $params);
+  }
+
+  protected function revokeRefreshToken(){
+    $params = array(
+      'token' => $this->refreshToken,
+      'token_type_hint' => 'refresh_token',  
+    );
+    
+    return $this->apiCall('revoke', 'POST', $params);
+  }
 
   /**
    * Stores the refresh_token in both object and persistent store
@@ -432,6 +541,80 @@ abstract class EtalioBase
     }
     $this->setAccessToken($response_params['access_token']);
     $this->setRefreshToken($response_params['refresh_token']);
+    return $response_params['access_token'];
+  }
+
+  /**
+   * Get trusted access token
+   *
+   * @return mixed
+   */
+  protected function getTrustedAccessToken() {
+    $this->debug("Getting trusted accessToken. ID: ".$this->appId." Token: ".$this->appSecret);
+
+    try {
+      // need to circumvent json_decode by calling _oauthRequest
+      // directly, since response isn't JSON format.
+      $params = [
+                  'client_id' => $this->appId,
+                  'client_secret' => $this->appSecret,
+                  'grant_type' => 'client_credentials',
+                ];
+      $access_token_response =
+        $this->makeRequest($this->getUrl('token'),"POST",$params);
+    } catch (EtalioApiException $e) {
+      // most likely that user very recently revoked authorization.
+      // In any event, we don't have an access_token, so say so.
+      return false;
+    }
+
+    if (empty($access_token_response)) {
+      return false;
+    }
+
+    $response_params = json_decode($access_token_response,true);
+    if (!isset($response_params['access_token'])) {
+      return false;
+    }
+    $this->setAccessToken($response_params['access_token']);
+    return $response_params['access_token'];
+  }
+
+  /**
+   * Get trusted access token
+   *
+   * @return mixed
+   */
+  protected function getAccessTokenByPwd($data) {
+    $this->debug("Getting trusted accessToken. ID: ".$this->appId." Token: ".$this->appSecret);
+
+    try {
+      // need to circumvent json_decode by calling _oauthRequest
+      // directly, since response isn't JSON format.
+      $params = [
+                  'client_id' => $this->appId,
+                  'client_secret' => $this->appSecret,
+                  'username' => $data['msisdn'],
+                  'password' => $data['password'],
+                  'grant_type' => 'password',
+                ];
+      $access_token_response =
+        $this->makeRequest($this->getUrl('token'),"POST",$params);
+    } catch (EtalioApiException $e) {
+      // most likely that user very recently revoked authorization.
+      // In any event, we don't have an access_token, so say so.
+      return false;
+    }
+
+    if (empty($access_token_response)) {
+      return false;
+    }
+
+    $response_params = json_decode($access_token_response,true);
+    if (!isset($response_params['access_token'])) {
+      return false;
+    }
+    $this->setAccessToken($response_params['access_token']);
     return $response_params['access_token'];
   }
 
