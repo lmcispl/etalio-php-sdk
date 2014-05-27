@@ -28,8 +28,9 @@ abstract class EtalioApi extends EtalioBase
    * APi version
    */
   const API_VERSION = "v1";
-  // const BASE_URL_API = "https://api.etalio.com";
-  const BASE_URL_API = "https://api-etalio.3fs.si";
+
+  // protected $baseUrlApi = "https://api-etalio.3fs.si";
+  protected $baseUrlApi = "https://api.etalio.com";
 
   protected $currentProfile;
 
@@ -42,26 +43,33 @@ abstract class EtalioApi extends EtalioBase
    */
   public function __construct(Array $config = []) {
     parent::__construct($config);
+    if(isset($config['baseUrlApi'])) $this->setBaseUrlApi($config['baseUrlApi']);
+
     $this->createDomainMap();
   }
 
   protected function createDomainMap(){
     $this->domainMap = array_merge($this->domainMap, [
-      'myprofile'             => self::BASE_URL_API . '/' . self::API_VERSION . '/profile/me',
-      'profiles'              => self::BASE_URL_API . '/' . self::API_VERSION . '/profiles',
-      'profile'               => self::BASE_URL_API . '/' . self::API_VERSION . '/profile',
-      'profileApplications'   => self::BASE_URL_API . '/' . self::API_VERSION . '/profile',
-      'application'           => self::BASE_URL_API . '/' . self::API_VERSION . '/application',
-      'applications'          => self::BASE_URL_API . '/' . self::API_VERSION . '/applications',
-      'applicationKeys'       => self::BASE_URL_API . '/' . self::API_VERSION . '/applications',
-      'categories'            => self::BASE_URL_API . '/' . self::API_VERSION . '/categories',
-      'scopes'                => self::BASE_URL_API . '/' . self::API_VERSION . '/scopes',
-      'msisdn'                => self::BASE_URL_API . '/' . self::API_VERSION . '/msisdn',
-      'resetPassword'         => self::BASE_URL_API . '/' . self::API_VERSION . '/profile/password-reset',
-      'verifyResetPassword'   => self::BASE_URL_API . '/' . self::API_VERSION . '/profile/password/reset',
-      'authorize'             => self::BASE_URL_API . '/' . self::API_VERSION . '/oauth2/authorize',
-      'revoke'                => self::BASE_URL_API . '/' . self::API_VERSION . '/oauth2/revoke',
+      'myprofile'             => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/me',
+      'profiles'              => $this->baseUrlApi . '/' . self::API_VERSION . '/profiles',
+      'profile'               => $this->baseUrlApi . '/' . self::API_VERSION . '/profile',
+      'profileApplications'   => $this->baseUrlApi . '/' . self::API_VERSION . '/profile',
+      'application'           => $this->baseUrlApi . '/' . self::API_VERSION . '/application',
+      'applications'          => $this->baseUrlApi . '/' . self::API_VERSION . '/applications',
+      'applicationKeys'       => $this->baseUrlApi . '/' . self::API_VERSION . '/applications',
+      'categories'            => $this->baseUrlApi . '/' . self::API_VERSION . '/categories',
+      'scopes'                => $this->baseUrlApi . '/' . self::API_VERSION . '/scopes',
+      'msisdn'                => $this->baseUrlApi . '/' . self::API_VERSION . '/msisdn',
+      'resetPassword'         => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/password-reset',
+      'verifyResetPassword'   => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/password/reset',
+      'authorize'             => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/authorize',
+      'revoke'                => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/revoke',
     ]);
+  }
+
+  public function setBaseUrlApi($baseUrlApi) {
+    $this->baseUrlApi = $baseUrlApi;
+    return $this;
   }
 
   public function isAuthenticated(){

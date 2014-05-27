@@ -38,8 +38,7 @@ abstract class EtalioBase
   /**
    * Server Url
    */
-  // const BASE_URL = "https://etalio.com";
-  const BASE_URL = "https://api-etalio.3fs.si";
+
 
   /**
    * Version of this SDK
@@ -55,6 +54,12 @@ abstract class EtalioBase
    * The JSON content type header
    */
   const JSON_CONTENT_TYPE = 'Content-Type: application/json';
+
+  /**
+   * Default base url
+   */
+  // protected $baseUrl = "https://api-etalio.3fs.si";
+  protected $baseUrl = "https://etalio.com";
 
   /**
    * Default options for curl.
@@ -134,13 +139,14 @@ abstract class EtalioBase
     if(isset($config['secret']))        $this->setAppSecret($config['secret']);
     if(isset($config['redirect_uri']))  $this->setRedirectUri($config['redirect_uri']);
     if(isset($config['debug']))         $this->debug = $config['debug'];
+    if(isset($config['baseUrl']))       $this->setBaseUrl($config['baseUrl']);
 
     //Populate with bare minimum of Etalio functionality, add more in sub classes
     $this->domainMap = array(
-      'api'               => self::BASE_URL,
+      'api'               => $this->baseUrl,
       'www'               => 'http://www.etalio.com',
-      'oauth2'            => self::BASE_URL . '/oauth2',
-      'token'             => self::BASE_URL . '/oauth2/token',
+      'oauth2'            => $this->baseUrl . '/oauth2',
+      'token'             => $this->baseUrl . '/oauth2/token',
     );
 
     $this->curlOpts = array(
@@ -316,6 +322,17 @@ abstract class EtalioBase
     }
 
     return $result;
+  }
+
+  /**
+   * Set the Base url.
+   *
+   * @param string $baseUrl Base url
+   * @return EtalioLoginBase
+   */
+  public function setBaseUrl($baseUrl) {
+    $this->baseUrl = $baseUrl;
+    return $this;
   }
 
   /**
