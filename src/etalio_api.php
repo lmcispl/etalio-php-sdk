@@ -62,6 +62,7 @@ abstract class EtalioApi extends EtalioBase
       'msisdn'                => $this->baseUrlApi . '/' . self::API_VERSION . '/msisdn',
       'resetPassword'         => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/password-reset',
       'verifyResetPassword'   => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/password/reset',
+      'token'                 => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/token',
       'authorize'             => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/authorize',
       'revoke'                => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/revoke',
     ]);

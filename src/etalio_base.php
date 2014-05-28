@@ -146,7 +146,6 @@ abstract class EtalioBase
       'api'               => $this->baseUrl,
       'www'               => 'http://www.etalio.com',
       'oauth2'            => $this->baseUrl . '/oauth2',
-      'token'             => $this->baseUrl . '/oauth2/token',
     );
 
     $this->curlOpts = array(
