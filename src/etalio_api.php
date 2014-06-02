@@ -144,7 +144,7 @@ abstract class EtalioApi extends EtalioBase
   }
 
   public function createProfile($payload){
-    $profile = $this->apiCall('profile', "POST", $payload, [ parent::JSON_CONTENT_TYPE ]);
+    $profile = $this->apiCall('profiles', "POST", $payload, [ parent::JSON_CONTENT_TYPE ]);
     if($profile && isset($profile['id'])){
       return $profile;
     }
