@@ -189,17 +189,41 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
+  public function grantApplicationByProfile($profileId, $key, $scope) {
+    $grantDomainPath = 'profile-'.$profileId.'-grant-application';
+    $this->setDomainPath($grantDomainPath, $this->domainMap['profile'].'/'.$profileId.'/applications');
+    $res = $this->apiCall($grantDomainPath, 'POST', ['key' => $key, 'scope' => $scope], [ parent::JSON_CONTENT_TYPE ]);
+    if($res && isset($res)){
+      return $res;
+    }
+    return false;
+  }
+
+  public function revokeApplicationByProfile($profileId, $appId) {
+    $revokeDomainPath = 'profile-'.$profileId.'-revoke-application-'.$appId;
+    $this->setDomainPath($revokeDomainPath, $this->domainMap['profile'].'/'.$profileId.'/application/'.$appId);
+    $res = $this->apiCall($revokeDomainPath, 'DELETE');
+    if($res === NULL){
+      return true;
+    }
+    return false;
+  }
 
   public function getProfileApplications($profileId){
 
   }
 
-  public function getApplications($authorUuid = NULL){
-    $apps = $this->apiCall('applications', ['author' => $authorUuid]);
+  public function getApplications($authorUuid = NULL, $extra = array() ){
+    $data = array('author' => $authorUuid);
+    if (count($extra) > 0){
+      $data = array_merge($data, $extra);
+    }
+    $apps = $this->apiCall('applications', $data);
     if(is_array($apps))
       return $apps;
     return false;
   }
+
 
   public function getApplication($id){
     $this->setDomainPath('application-'.$id, $this->domainMap['application']."/".$id);
