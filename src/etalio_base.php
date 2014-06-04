@@ -220,8 +220,12 @@ abstract class EtalioBase
   }
 
   public function revokeToken() {
-    $this->revokeAccessToken();
-    $this->revokeRefreshToken();
+    if (isset($this->accessToken) && $this->accessToken) {
+      $this->revokeAccessToken();
+    }
+    if (isset($this->refreshToken) && $this->refreshToken) {
+      $this->revokeRefreshToken();
+    }
   }
 
   /**
