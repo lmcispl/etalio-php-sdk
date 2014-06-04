@@ -151,6 +151,15 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
+  public function deleteProfile($profileId){
+    $this->setDomainPath('delete-profile-'.$profileId, $this->domainMap['profile']."/".$profileId);
+    $res = $this->apiCall('delete-profile-'.$profileId, 'DELETE');
+    if($res === NULL){
+      return true;
+    }
+    return false;
+  }
+  
   public function updateProfile($profileId, $payload){
     $identifier = 'profile-'.$profileId;
     $this->setDomainPath($identifier, $this->domainMap['profile']."/".$profileId);
