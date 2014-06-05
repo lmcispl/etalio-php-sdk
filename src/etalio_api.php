@@ -240,9 +240,11 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
-  public function setApplicationImage($applicationId, $imagePath, $imageType, $imageName){
-    $imageDomainPath = 'application-'.$applicationId.'-image';
-    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/image');
+  public function setApplicationImage($applicationId, $imagePath, $imageType, $imageName, $promoted = false){
+    $imageEndpoint = $promoted ? 'promoted-image' : 'image';
+    $imageDomainPath = 'application-'.$applicationId.'-'.$imageEndpoint;
+    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/'.$imageEndpoint);
+
     $files = [];
     if(class_exists("CURLFile")){
       // If PHP5.5 <
@@ -258,9 +260,11 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
-  public function getApplicationImage($applicationId, $size){
-    $imageDomainPath = 'application-'.$applicationId.'-image';
-    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/image');
+  public function getApplicationImage($applicationId, $size, $promoted = false){
+    $imageEndpoint = $promoted ? 'promoted-image' : 'image';
+    $imageDomainPath = 'application-'.$applicationId.'-'.$imageEndpoint;
+    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/'.$imageEndpoint);
+
     $res = $this->apiCall($imageDomainPath, "GET", ['size' => $size]);
     if($res && isset($res)){
       return $res;
@@ -270,34 +274,6 @@ abstract class EtalioApi extends EtalioBase
 
   public function deleteApplicationImage($applicationId){
 
-  }
-
-  public function setApplicationFeaturedImage($applicationId, $imagePath, $imageType, $imageName){
-    $imageDomainPath = 'application-'.$applicationId.'-featured-image';
-    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/featuredImage');
-    $files = [];
-    if(class_exists("CURLFile")){
-      // If PHP5.5 <
-      $files['image'] = new \CURLFile($imagePath, $imageType, 'image');
-    }else{
-      // PHP5.4
-      $files['image'] = "@".$imagePath.";type=".$imageType.";";
-    }
-    $res = $this->apiCall($imageDomainPath, "POST", [], [], $files);
-    if($res && isset($res)){
-      return $res;
-    }
-    return false;
-  }
-
-  public function getApplicationFeaturedImage($applicationId, $size){
-    $imageDomainPath = 'application-'.$applicationId.'-image';
-    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/image');
-    $res = $this->apiCall($imageDomainPath, "GET", ['size' => $size]);
-    if($res && isset($res)){
-      return $res;
-    }
-    return false;
   }
 
   public function getApplicationKey($applicationId, $keyId){
