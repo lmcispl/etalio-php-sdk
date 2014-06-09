@@ -60,6 +60,8 @@ abstract class EtalioApi extends EtalioBase
       'categories'            => $this->baseUrlApi . '/' . self::API_VERSION . '/categories',
       'scopes'                => $this->baseUrlApi . '/' . self::API_VERSION . '/scopes',
       'msisdn'                => $this->baseUrlApi . '/' . self::API_VERSION . '/msisdn',
+      'msisdnClaim'           => $this->baseUrlApi . '/' . self::API_VERSION . '/msisdn/claim',
+      'netops'                => $this->baseUrlApi . '/' . self::API_VERSION . '/netops',
       'resetPassword'         => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/password-reset',
       'verifyResetPassword'   => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/password/reset',
       'token'                 => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/token',
@@ -81,6 +83,35 @@ abstract class EtalioApi extends EtalioBase
     $status = $this->apiCall('msisdn', 'POST', $data, [ parent::JSON_CONTENT_TYPE ]);
     if(is_array($status))
       return $status;
+    return false;
+  }
+
+  public function claimMsisdn(Array $data){
+    $status = $this->apiCall('msisdnClaim', 'POST', $data, [ parent::JSON_CONTENT_TYPE ]);
+    if(is_array($status))
+      return $status;
+    return false;
+  }
+
+  public function smsMT($msisdn) {
+    //Send verification code
+    $params = array(
+      'msisdn' => $msisdn,
+      'requestCode' => true,
+    );
+
+    return $this->handleMsisdn($params);
+  }
+
+  public function getNetops($msisdn = ''){
+    if (isset($msisdn) && $msisdn) {
+      $res = $this->apiCall('netops', 'GET', array('msisdn' => $msisdn), [ parent::JSON_CONTENT_TYPE ]);
+    } else {
+      $res = $this->apiCall('netops', 'GET');
+    }
+
+    if(is_array($res))
+      return $res;
     return false;
   }
 
