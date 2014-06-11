@@ -53,6 +53,7 @@ abstract class EtalioApi extends EtalioBase
       'myprofile'             => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/me',
       'profiles'              => $this->baseUrlApi . '/' . self::API_VERSION . '/profiles',
       'profile'               => $this->baseUrlApi . '/' . self::API_VERSION . '/profile',
+      'profileClaim'          => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/claim',
       'profileApplications'   => $this->baseUrlApi . '/' . self::API_VERSION . '/profile',
       'application'           => $this->baseUrlApi . '/' . self::API_VERSION . '/application',
       'applications'          => $this->baseUrlApi . '/' . self::API_VERSION . '/applications',
@@ -103,6 +104,23 @@ abstract class EtalioApi extends EtalioBase
     return $this->handleMsisdn($params);
   }
 
+  public function smsMTCode($msisdn, $code) {
+    //Send verification code
+    $params = array(
+      'msisdn' => $msisdn,
+      'requestCode' => strtoupper($code),
+    );
+
+    return $this->handleMsisdn($params);
+  }
+
+  public function profileClaim(Array $params) {
+    $status = $this->apiCall('profileClaim', 'POST', $params, [ parent::JSON_CONTENT_TYPE ]);
+    if(is_array($status))
+      return $status;
+    return false;
+  }
+  
   public function getNetops($msisdn = ''){
     if (isset($msisdn) && $msisdn) {
       $res = $this->apiCall('netops', 'GET', array('msisdn' => $msisdn), [ parent::JSON_CONTENT_TYPE ]);
