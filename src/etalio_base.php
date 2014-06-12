@@ -615,7 +615,7 @@ abstract class EtalioBase
 
     $response_params = json_decode($access_token_response,true);
     if (!isset($response_params['access_token'])) {
-      return false;
+      return $response_params;
     }
     $this->setAccessToken($response_params['access_token']);
     return $response_params['access_token'];
