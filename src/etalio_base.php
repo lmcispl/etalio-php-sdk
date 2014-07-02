@@ -59,7 +59,7 @@ abstract class EtalioBase
    * Default base url
    */
   // protected $baseUrl = "https://api-etalio.3fs.si";
-  protected $baseUrl = "https://etalio.com";
+  protected $baseUrlLogin = "https://login.etalio.com";
 
   /**
    * Default options for curl.
@@ -139,13 +139,12 @@ abstract class EtalioBase
     if(isset($config['secret']))        $this->setAppSecret($config['secret']);
     if(isset($config['redirect_uri']))  $this->setRedirectUri($config['redirect_uri']);
     if(isset($config['debug']))         $this->debug = $config['debug'];
-    if(isset($config['baseUrl']))       $this->setBaseUrl($config['baseUrl']);
+    if(isset($config['baseUrlLogin']))  $this->setBaseUrlLogin($config['baseUrlLogin']);
 
     //Populate with bare minimum of Etalio functionality, add more in sub classes
     $this->domainMap = array(
-      'api'               => $this->baseUrl,
       'www'               => 'http://www.etalio.com',
-      'oauth2'            => $this->baseUrl . '/oauth2',
+      'oauth2'            => $this->baseUrlLogin . '/oauth2',
     );
 
     $this->curlOpts = array(
@@ -328,13 +327,13 @@ abstract class EtalioBase
   }
 
   /**
-   * Set the Base url.
+   * Set the Base url login.
    *
    * @param string $baseUrl Base url
    * @return EtalioLoginBase
    */
-  public function setBaseUrl($baseUrl) {
-    $this->baseUrl = $baseUrl;
+  public function setBaseUrlLogin($baseUrlLogin) {
+    $this->baseUrlLogin = $baseUrlLogin;
     return $this;
   }
 
