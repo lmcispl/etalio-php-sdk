@@ -58,7 +58,6 @@ abstract class EtalioBase
   /**
    * Default base url
    */
-  // protected $baseUrl = "https://api-etalio.3fs.si";
   protected $baseUrlLogin = "https://login.etalio.com";
 
   /**

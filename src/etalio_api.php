@@ -29,7 +29,6 @@ abstract class EtalioApi extends EtalioBase
    */
   const API_VERSION = "v1";
 
-  // protected $baseUrlApi = "https://api-etalio.3fs.si";
   protected $baseUrlApi = "https://api.etalio.com";
 
   protected $currentProfile;
