@@ -29,7 +29,6 @@ abstract class EtalioApi extends EtalioBase
    */
   const API_VERSION = "v1";
 
-  // protected $baseUrlApi = "https://api-etalio.3fs.si";
   protected $baseUrlApi = "https://api.etalio.com";
 
   protected $currentProfile;
@@ -53,6 +52,7 @@ abstract class EtalioApi extends EtalioBase
       'myprofile'             => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/me',
       'profiles'              => $this->baseUrlApi . '/' . self::API_VERSION . '/profiles',
       'profile'               => $this->baseUrlApi . '/' . self::API_VERSION . '/profile',
+      'profileClaim'          => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/claim',
       'profileApplications'   => $this->baseUrlApi . '/' . self::API_VERSION . '/profile',
       'application'           => $this->baseUrlApi . '/' . self::API_VERSION . '/application',
       'applications'          => $this->baseUrlApi . '/' . self::API_VERSION . '/applications',
@@ -60,8 +60,11 @@ abstract class EtalioApi extends EtalioBase
       'categories'            => $this->baseUrlApi . '/' . self::API_VERSION . '/categories',
       'scopes'                => $this->baseUrlApi . '/' . self::API_VERSION . '/scopes',
       'msisdn'                => $this->baseUrlApi . '/' . self::API_VERSION . '/msisdn',
+      'msisdnClaim'           => $this->baseUrlApi . '/' . self::API_VERSION . '/msisdn/claim',
+      'netops'                => $this->baseUrlApi . '/' . self::API_VERSION . '/netops',
       'resetPassword'         => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/password-reset',
       'verifyResetPassword'   => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/password/reset',
+      'token'                 => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/token',
       'authorize'             => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/authorize',
       'revoke'                => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/revoke',
     ]);
@@ -80,6 +83,52 @@ abstract class EtalioApi extends EtalioBase
     $status = $this->apiCall('msisdn', 'POST', $data, [ parent::JSON_CONTENT_TYPE ]);
     if(is_array($status))
       return $status;
+    return false;
+  }
+
+  public function claimMsisdn(Array $data){
+    $status = $this->apiCall('msisdnClaim', 'POST', $data, [ parent::JSON_CONTENT_TYPE ]);
+    if(is_array($status))
+      return $status;
+    return false;
+  }
+
+  public function smsMT($msisdn) {
+    //Send verification code
+    $params = array(
+      'msisdn' => $msisdn,
+      'requestCode' => true,
+    );
+
+    return $this->handleMsisdn($params);
+  }
+
+  public function smsMTCode($msisdn, $code) {
+    //Send verification code
+    $params = array(
+      'msisdn' => $msisdn,
+      'requestCode' => strtoupper($code),
+    );
+
+    return $this->handleMsisdn($params);
+  }
+
+  public function profileClaim(Array $params) {
+    $status = $this->apiCall('profileClaim', 'POST', $params, [ parent::JSON_CONTENT_TYPE ]);
+    if(is_array($status))
+      return $status;
+    return false;
+  }
+  
+  public function getNetops($msisdn = ''){
+    if (isset($msisdn) && $msisdn) {
+      $res = $this->apiCall('netops', 'GET', array('msisdn' => $msisdn), [ parent::JSON_CONTENT_TYPE ]);
+    } else {
+      $res = $this->apiCall('netops', 'GET');
+    }
+
+    if(is_array($res))
+      return $res;
     return false;
   }
 
@@ -143,13 +192,22 @@ abstract class EtalioApi extends EtalioBase
   }
 
   public function createProfile($payload){
-    $profile = $this->apiCall('profile', "POST", $payload, [ parent::JSON_CONTENT_TYPE ]);
+    $profile = $this->apiCall('profiles', "POST", $payload, [ parent::JSON_CONTENT_TYPE ]);
     if($profile && isset($profile['id'])){
       return $profile;
     }
     return false;
   }
 
+  public function deleteProfile($profileId){
+    $this->setDomainPath('delete-profile-'.$profileId, $this->domainMap['profile']."/".$profileId);
+    $res = $this->apiCall('delete-profile-'.$profileId, 'DELETE');
+    if($res === NULL){
+      return true;
+    }
+    return false;
+  }
+  
   public function updateProfile($profileId, $payload){
     $identifier = 'profile-'.$profileId;
     $this->setDomainPath($identifier, $this->domainMap['profile']."/".$profileId);
@@ -188,17 +246,41 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
+  public function grantApplicationByProfile($profileId, $key, $scope) {
+    $grantDomainPath = 'profile-'.$profileId.'-grant-application';
+    $this->setDomainPath($grantDomainPath, $this->domainMap['profile'].'/'.$profileId.'/applications');
+    $res = $this->apiCall($grantDomainPath, 'POST', ['key' => $key, 'scope' => $scope], [ parent::JSON_CONTENT_TYPE ]);
+    if($res && isset($res)){
+      return $res;
+    }
+    return false;
+  }
+
+  public function revokeApplicationByProfile($profileId, $appId) {
+    $revokeDomainPath = 'profile-'.$profileId.'-revoke-application-'.$appId;
+    $this->setDomainPath($revokeDomainPath, $this->domainMap['profile'].'/'.$profileId.'/application/'.$appId);
+    $res = $this->apiCall($revokeDomainPath, 'DELETE');
+    if($res === NULL){
+      return true;
+    }
+    return false;
+  }
 
   public function getProfileApplications($profileId){
 
   }
 
-  public function getApplications($authorUuid = NULL){
-    $apps = $this->apiCall('applications', ['author' => $authorUuid]);
+  public function getApplications($authorUuid = NULL, $extra = array() ){
+    $data = array('author' => $authorUuid);
+    if (count($extra) > 0){
+      $data = array_merge($data, $extra);
+    }
+    $apps = $this->apiCall('applications', $data);
     if(is_array($apps))
       return $apps;
     return false;
   }
+
 
   public function getApplication($id){
     $this->setDomainPath('application-'.$id, $this->domainMap['application']."/".$id);
@@ -240,11 +322,9 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
-  public function setApplicationImage($applicationId, $imagePath, $imageType, $imageName, $promoted = false){
-    $imageEndpoint = $promoted ? 'promoted-image' : 'image';
-    $imageDomainPath = 'application-'.$applicationId.'-'.$imageEndpoint;
-    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/'.$imageEndpoint);
-
+  public function setApplicationImage($applicationId, $imagePath, $imageType, $imageName){
+    $imageDomainPath = 'application-'.$applicationId.'-image';
+    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/image');
     $files = [];
     if(class_exists("CURLFile")){
       // If PHP5.5 <
@@ -260,11 +340,9 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
-  public function getApplicationImage($applicationId, $size, $promoted = false){
-    $imageEndpoint = $promoted ? 'promoted-image' : 'image';
-    $imageDomainPath = 'application-'.$applicationId.'-'.$imageEndpoint;
-    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/'.$imageEndpoint);
-
+  public function getApplicationImage($applicationId, $size){
+    $imageDomainPath = 'application-'.$applicationId.'-image';
+    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/image');
     $res = $this->apiCall($imageDomainPath, "GET", ['size' => $size]);
     if($res && isset($res)){
       return $res;
@@ -274,6 +352,34 @@ abstract class EtalioApi extends EtalioBase
 
   public function deleteApplicationImage($applicationId){
 
+  }
+
+  public function setApplicationFeaturedImage($applicationId, $imagePath, $imageType, $imageName){
+    $imageDomainPath = 'application-'.$applicationId.'-featured-image';
+    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/featuredImage');
+    $files = [];
+    if(class_exists("CURLFile")){
+      // If PHP5.5 <
+      $files['image'] = new \CURLFile($imagePath, $imageType, 'image');
+    }else{
+      // PHP5.4
+      $files['image'] = "@".$imagePath.";type=".$imageType.";";
+    }
+    $res = $this->apiCall($imageDomainPath, "POST", [], [], $files);
+    if($res && isset($res)){
+      return $res;
+    }
+    return false;
+  }
+
+  public function getApplicationFeaturedImage($applicationId, $size){
+    $imageDomainPath = 'application-'.$applicationId.'-image';
+    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/image');
+    $res = $this->apiCall($imageDomainPath, "GET", ['size' => $size]);
+    if($res && isset($res)){
+      return $res;
+    }
+    return false;
   }
 
   public function getApplicationKey($applicationId, $keyId){
