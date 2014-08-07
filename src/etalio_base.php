@@ -43,7 +43,7 @@ abstract class EtalioBase
   /**
    * Version of this SDK
    */
-  const VERSION = '0.3.5';
+  const VERSION = '0.3.6';
 
   /**
    * The string to look for when an access token has expired
@@ -236,7 +236,7 @@ abstract class EtalioBase
     if($this->isEmptyString([$this->accessToken,$this->refreshToken])) {
       $this->debug("Trying to authenticate user from code");
       return $this->getAccessTokenFromCode();
-      
+
     } elseif (!$this->isEmptyString($this->refreshToken)) {
       $this->debug("No access_token but a refresh_token, trying to refresh...");
       return $this->refreshAccessToken();
@@ -401,18 +401,18 @@ abstract class EtalioBase
   protected function revokeAccessToken(){
     $params = array(
       'token' => $this->accessToken,
-      'token_type_hint' => 'access_token',  
+      'token_type_hint' => 'access_token',
     );
-    
+
     return $this->apiCall('revoke', 'POST', $params);
   }
 
   protected function revokeRefreshToken(){
     $params = array(
       'token' => $this->refreshToken,
-      'token_type_hint' => 'refresh_token',  
+      'token_type_hint' => 'refresh_token',
     );
-    
+
     return $this->apiCall('revoke', 'POST', $params);
   }
 
