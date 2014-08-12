@@ -64,7 +64,7 @@ abstract class EtalioApi extends EtalioBase
       'netops'                => $this->baseUrlApi . '/' . self::API_VERSION . '/netops',
       'resetPassword'         => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/password-reset',
       'verifyResetPassword'   => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/password/reset',
-      'token'                 => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/token',
+      'token'                 => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/token',
       'authorize'             => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/authorize',
       'revoke'                => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/revoke',
       'oidc-authorize'        => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authorize',
