@@ -850,7 +850,7 @@ abstract class EtalioBase
    *
    * @param string or array of strings
    */
-  private function isEmptyString($str) {
+  protected function isEmptyString($str) {
     if(is_array($str)) {
       foreach ($str as $s) {
         if($s == null || strlen($s) == 0) return true;
