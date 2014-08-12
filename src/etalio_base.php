@@ -193,30 +193,6 @@ abstract class EtalioBase
       ));
   }
 
-  /**
-   * Authorize an app or redirect to grant application
-   */
-  public function authorizeApp(Array $params = []){
-    $this->debug('Authorize app');
-    if (!isset($params['client_id'])) {
-      $this->debug('Fail to authorize app: No Application Client Key');
-      return false;
-    } elseif (!isset($params['state'])) {
-      $this->debug('Fail to authorize app: No Application Client State');
-      return false;
-    } elseif (!isset($params['redirect_uri'])) {
-      $this->debug('Fail to authorize app: No Application Client Redirect URI');
-      return false;
-    }
-
-    if ($this->isEmptyString($this->accessToken)) {
-      $this->authenticateUser();
-    }
-
-    return $this->apiCall('authorize', 'POST', $params, [ self::JSON_CONTENT_TYPE ]);
-
-  }
-
   public function revokeToken() {
     if (isset($this->refreshToken) && isset($this->accessToken) && $this->refreshToken) {
       $this->revokeRefreshToken();

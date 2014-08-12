@@ -67,6 +67,7 @@ abstract class EtalioApi extends EtalioBase
       'token'                 => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/token',
       'authorize'             => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/authorize',
       'revoke'                => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/revoke',
+      'oidc-authorize'        => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authorize',
     ]);
   }
 
@@ -113,13 +114,57 @@ abstract class EtalioApi extends EtalioBase
     return $this->handleMsisdn($params);
   }
 
+  /**
+   * Authorize an app or redirect to grant application
+   */
+  public function authorizeApp(Array $params = []){
+    $this->debug('Authorize app');
+    if (!isset($params['client_id'])) {
+      $this->debug('Fail to authorize app: No Application Client Key');
+      return false;
+    } elseif (!isset($params['state'])) {
+      $this->debug('Fail to authorize app: No Application Client State');
+      return false;
+    } elseif (!isset($params['redirect_uri'])) {
+      $this->debug('Fail to authorize app: No Application Client Redirect URI');
+      return false;
+    }
+
+    if ($this->isEmptyString($this->accessToken)) {
+      $this->authenticateUser();
+    }
+    return $this->apiCall('authorize', 'POST', $params, [ self::JSON_CONTENT_TYPE ]);
+  }
+
+  /**
+   * Authorize an app or redirect to grant application
+   */
+  public function authorizeOidcApp(Array $params = []){
+    $this->debug('Authorize app');
+    if (!isset($params['client_id'])) {
+      $this->debug('Fail to authorize app: No Application Client Key');
+      return false;
+    } elseif (!isset($params['state'])) {
+      $this->debug('Fail to authorize app: No Application Client State');
+      return false;
+    } elseif (!isset($params['redirect_uri'])) {
+      $this->debug('Fail to authorize app: No Application Client Redirect URI');
+      return false;
+    }
+
+    if ($this->isEmptyString($this->accessToken)) {
+      $this->authenticateUser();
+    }
+    return $this->apiCall('oidc-authorize', 'POST', $params, [ self::JSON_CONTENT_TYPE ]);
+  }
+
   public function profileClaim(Array $params) {
     $status = $this->apiCall('profileClaim', 'POST', $params, [ parent::JSON_CONTENT_TYPE ]);
     if(is_array($status))
       return $status;
     return false;
   }
-  
+
   public function getNetops($msisdn = ''){
     if (isset($msisdn) && $msisdn) {
       $res = $this->apiCall('netops', 'GET', array('msisdn' => $msisdn), [ parent::JSON_CONTENT_TYPE ]);
@@ -132,7 +177,7 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
-  //Endpoint for just POST 
+  //Endpoint for just POST
   public function resetPassword(Array $params) {
     return $this->apiCall('resetPassword', 'POST', $params, [ parent::JSON_CONTENT_TYPE ]);
   }
@@ -207,7 +252,7 @@ abstract class EtalioApi extends EtalioBase
     }
     return false;
   }
-  
+
   public function updateProfile($profileId, $payload){
     $identifier = 'profile-'.$profileId;
     $this->setDomainPath($identifier, $this->domainMap['profile']."/".$profileId);
