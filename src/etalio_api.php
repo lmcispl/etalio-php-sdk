@@ -301,10 +301,20 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
+  public function revokeGrantByProfile($profileId, $keyId){
+    $revokeDomainPath = 'profile-'.$profileId.'-revoke-grant-'.$keyId;
+    $this->setDomainPath($revokeDomainPath, $this->domainMap['profile'].'/'.$profileId.'/grant/'.$keyId);
+    $res = $this->apiCall($revokeDomainPath, 'DELETE');
+    if($res === NULL){
+      return true;
+    }
+    return false;
+  }
+
   public function getGrantByProfileIdAndClientId($profileId, $clientId){
     $grantPath = 'profile-'.$profileId.'-grant-application-'.$clientId;
-    $this->setDomainPath($grantDomainPath, $this->domainMap['profile'].'/'.$profileId.'/grant/'.$clientId);
-    $res = $this->apiCall($grantDomainPath, 'GET', [], [ parent::JSON_CONTENT_TYPE ]);
+    $this->setDomainPath($grantPath, $this->domainMap['profile'].'/'.$profileId.'/grant/'.$clientId);
+    $res = $this->apiCall($grantPath, 'GET', [], [ parent::JSON_CONTENT_TYPE ]);
     if($res && isset($res)){
       return $res;
     }
