@@ -293,7 +293,7 @@ abstract class EtalioApi extends EtalioBase
 
   public function grantApplicationByProfile($profileId, $key, $scope) {
     $grantDomainPath = 'profile-'.$profileId.'-grant-application';
-    $this->setDomainPath($grantDomainPath, $this->domainMap['profile'].'/'.$profileId.'/applications');
+    $this->setDomainPath($grantDomainPath, $this->domainMap['profile'].'/'.$profileId.'/grants');
     $res = $this->apiCall($grantDomainPath, 'POST', ['key' => $key, 'scope' => $scope], [ parent::JSON_CONTENT_TYPE ]);
     if($res && isset($res)){
       return $res;
