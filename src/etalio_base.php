@@ -95,6 +95,14 @@ abstract class EtalioBase
   protected $state;
 
   /**
+   * A CSRF nonce variable to assist in the defense against CSRF attacks.
+   *
+   * @var string
+   */
+  protected $nonce;
+
+
+  /**
    * The OAuth access_token received in exchange for a valid authorization code.
    *
    * @var string
@@ -143,7 +151,7 @@ abstract class EtalioBase
     //Populate with bare minimum of Etalio functionality, add more in sub classes
     $this->domainMap = array(
       'www'               => 'http://www.etalio.com',
-      'oauth2'            => $this->baseUrlLogin . '/oauth2',
+      'oidc'              => $this->baseUrlLogin . '/oidc',
     );
 
     $this->curlOpts = array(
@@ -180,14 +188,16 @@ abstract class EtalioBase
     }
 
     return $this->getUrl(
-      'oauth2',
+      'oidc',
       array_merge(
         [
           'client_id'     => $this->appId,
           'state'         => $this->state,
+          'nonce'         => $this->nonce,
           'redirect_uri'  => $this->redirectUri,
           'sdk'           => 'php-sdk-'.self::VERSION,
           'response_type' => 'code',
+          'acr_values'    => 2,
         ],
         $params
       ));
@@ -470,6 +480,10 @@ abstract class EtalioBase
     if ($this->state === null) {
       $this->state = md5(uniqid(mt_rand(), true));
       $this->setPersistentData('state', $this->state);
+    }
+    if ($this->nonce === null) {
+      $this->nonce = md5(uniqid(mt_rand(), true));
+      $this->setPersistentData('nonce', $this->nonce);
     }
   }
 
