@@ -219,6 +219,7 @@ abstract class EtalioBase
    */
   public function authenticateUser() {
     $this->debug("Authenticating user");
+
     if($this->isEmptyString([$this->accessToken,$this->refreshToken])) {
       $this->debug("Trying to authenticate user from code");
       return $this->getAccessTokenFromCode();
@@ -469,7 +470,6 @@ abstract class EtalioBase
         return false;
       }
     }
-
     return false;
   }
 
@@ -519,19 +519,25 @@ abstract class EtalioBase
     } catch (EtalioApiException $e) {
       // most likely that user very recently revoked authorization.
       // In any event, we don't have an access_token, so say so.
+      $this->debug("Token url responded with an error");
       return false;
     }
 
     if (empty($access_token_response)) {
+      $this->debug("The access_token response was empty");
       return false;
     }
 
     $response_params = json_decode($access_token_response,true);
-    if (!isset($response_params['access_token']) || !isset($response_params['refresh_token'])) {
+    if (!isset($response_params['access_token']) || !isset($response_params['id_token']) || !isset($response_params['token_type'])) {
+      $this->debug("One of access_token, id_token, and token_type is not part of the response");
       return false;
     }
+
     $this->setAccessToken($response_params['access_token']);
-    $this->setRefreshToken($response_params['refresh_token']);
+    if (isset($response_params['refresh_token'])) {
+      $this->setRefreshToken($response_params['refresh_token']);
+    }
     return $response_params['access_token'];
   }
 
