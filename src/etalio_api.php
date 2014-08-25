@@ -291,7 +291,7 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
-  public function updateGrantByProileAndClientIdAndScope($profileId, $key, $scope){
+  public function updateGrantByProileAndClientIdAndScope($profileId, $keyId, $scope){
     $updateDomainPath = 'update-profile-'.$profileId.'-revoke-grant-'.$keyId;
     $this->setDomainPath($revokeDomainPath, $this->domainMap['profile'].'/'.$profileId.'/grant/'.$keyId);
     $grant = $this->apiCall($revokeDomainPath, "POST", ['scope' => $scope], [ parent::JSON_CONTENT_TYPE ]);
