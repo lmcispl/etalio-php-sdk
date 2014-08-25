@@ -32,6 +32,7 @@ abstract class EtalioApi extends EtalioBase
   protected $baseUrlApi = "https://api.etalio.com";
 
   protected $currentProfile;
+  protected $userInfo;
 
   /**
    * Identical to the parent constructor, except that
@@ -50,6 +51,7 @@ abstract class EtalioApi extends EtalioBase
   protected function createDomainMap(){
     $this->domainMap = array_merge($this->domainMap, [
       'myprofile'             => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/me',
+      'userinfo'              => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/userinfo',
       'profiles'              => $this->baseUrlApi . '/' . self::API_VERSION . '/profiles',
       'profile'               => $this->baseUrlApi . '/' . self::API_VERSION . '/profile',
       'profileClaim'          => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/claim',
@@ -189,13 +191,25 @@ abstract class EtalioApi extends EtalioBase
   public function getCurrentProfile(){
     if(!isset($this->currentProfile)) {
       $profile = $this->apiCall('myprofile');
-      if($profile && isset($profile['id'])) {
+      if($profile && (isset($profile['id']) || isset($profile['sub']))) {
         $this->currentProfile = $profile;
       } else {
         return false;
       }
     }
     return (Array)$this->currentProfile;
+  }
+
+  public function getUserinfo(){
+    if (!isset($this->userInfo)){
+      $profile = $this->apiCall('userinfo');
+      if ($profile && isset($profile['sub'])) {
+        $this->userInfo = $profile;
+      } else {
+        return false;
+      }
+    }
+    return (Array) $this->userInfo;
   }
 
   public function updateCurrentProfile(Array $profile){
