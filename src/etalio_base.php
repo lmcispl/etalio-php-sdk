@@ -151,7 +151,7 @@ abstract class EtalioBase
     //Populate with bare minimum of Etalio functionality, add more in sub classes
     $this->domainMap = array(
       'www'               => 'http://www.etalio.com',
-      'oidc'              => $this->baseUrlLogin . '/oidc',
+      'oidc'              => $this->baseUrlLogin . '/oauth2',
     );
 
     $this->curlOpts = array(
