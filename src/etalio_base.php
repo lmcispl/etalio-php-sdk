@@ -529,10 +529,12 @@ abstract class EtalioBase
     }
 
     $response_params = json_decode($access_token_response,true);
-    if (!isset($response_params['access_token']) || !isset($response_params['id_token']) || !isset($response_params['token_type'])) {
+    if (!isset($response_params['access_token']) || !isset($response_params['token_type'])) {
       $this->debug("One of access_token, id_token, and token_type is not part of the response");
       return false;
     }
+    if (!isset($response_params['id_token']))
+      $this->debug("No id_token was part of the response. This might be a Oauth2 request");
 
     $this->setAccessToken($response_params['access_token']);
     if (isset($response_params['refresh_token'])) {
