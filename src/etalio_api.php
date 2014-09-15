@@ -179,6 +179,16 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
+  public function getNetop($id){
+    $key = 'netop'.$id;
+    $url = $this->domainMap['netops']."/" . $id;
+    $this->setDomainPath($key, $url);
+    $res = $this->apiCall($key, 'GET');
+    if(is_array($res))
+      return $res;
+    return false;
+  }
+
   //Endpoint for just POST
   public function resetPassword(Array $params) {
     return $this->apiCall('resetPassword', 'POST', $params, [ parent::JSON_CONTENT_TYPE ]);

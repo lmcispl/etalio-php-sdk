@@ -117,9 +117,9 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
     $_SERVER['HTTP_HOST'] = 'www.test.com';
     $_SERVER['REQUEST_URI'] = '/unit-tests.php';
     $login_url = parse_url($etalio->getLoginUrl());
-    $this->assertEquals($login_url['scheme'], 'https');
-    $this->assertEquals($login_url['host'], 'login.etalio.com');
-    $this->assertEquals($login_url['path'], '/oidc');
+    $this->assertEquals('https', $login_url['scheme']);
+    $this->assertEquals('login.etalio.com', $login_url['host']);
+    $this->assertEquals('/oauth2', $login_url['path']);
     $expected_login_params =
       array('client_id' => self::APP_ID,
             'redirect_uri' => self::REDIRECT_URI);
@@ -145,9 +145,9 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
     $extra_params = array('scope' => 'email, sms',
                           'nonsense' => 'nonsense');
     $login_url = parse_url($etalio->getLoginUrl($extra_params));
-    $this->assertEquals($login_url['scheme'], 'https');
-    $this->assertEquals($login_url['host'], 'login.etalio.com');
-    $this->assertEquals($login_url['path'], '/oidc');
+    $this->assertEquals('https', $login_url['scheme']);
+    $this->assertEquals('login.etalio.com', $login_url['host']);
+    $this->assertEquals('/oauth2', $login_url['path']);
     $expected_login_params =
       array_merge(
         array('client_id' => self::APP_ID,
@@ -175,9 +175,9 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
     $extra_params = array('scope' => $scope_params_as_array,
                           'nonsense' => 'nonsense');
     $login_url = parse_url($etalio->getLoginUrl($extra_params));
-    $this->assertEquals($login_url['scheme'], 'https');
-    $this->assertEquals($login_url['host'], 'login.etalio.com');
-    $this->assertEquals($login_url['path'], '/oidc');
+    $this->assertEquals('https', $login_url['scheme']);
+    $this->assertEquals('login.etalio.com', $login_url['host']);
+    $this->assertEquals('/oauth2', $login_url['path']);
     // expect api to flatten array params to comma separated list
     // should do the same here before asserting to make sure API is behaving
     // correctly;
