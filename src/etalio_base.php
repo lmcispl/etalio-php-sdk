@@ -16,6 +16,7 @@
  **/
 
 namespace Etalio;
+
 require_once('etalio_api_exception.php');
 
 if (!function_exists('curl_init')) {
@@ -204,12 +205,21 @@ abstract class EtalioBase
   }
 
   public function revokeToken() {
-    if (isset($this->refreshToken) && isset($this->accessToken) && $this->refreshToken) {
-      $this->revokeRefreshToken();
+    try{
+      if (isset($this->refreshToken) && isset($this->accessToken) && $this->refreshToken) {
+        $this->revokeRefreshToken();
+      }
+    } catch (EtalioApiException $e){
+      $this->errorLog("Could not revoke refresh token $e");
     }
-    if (isset($this->accessToken) && $this->accessToken) {
-      $this->revokeAccessToken();
+    try {
+      if (isset($this->accessToken) && $this->accessToken) {
+        $this->revokeAccessToken();
+      }
+    } catch (EtalioApiException $e){
+      $this->errorLog("Could not revoke access token $e");
     }
+    $this->clearTokens();
   }
 
   /**
@@ -412,6 +422,17 @@ abstract class EtalioBase
     $this->refreshToken = $token;
     $this->setPersistentData('refresh_token',$token);
   }
+
+  /**
+   * Stores the refresh_token in both object and persistent store
+   *
+   * @param string $token the refresh_token
+   */
+  protected function clearRefreshToken() {
+    $this->refreshToken = null;
+    $this->clearPersistentData('refresh_token');
+  }
+
   /**
    * Stores the access_token in both object and persistent store
    *
@@ -420,6 +441,16 @@ abstract class EtalioBase
   protected function setAccessToken($token) {
     $this->accessToken = $token;
     $this->setPersistentData('access_token',$token);
+  }
+
+  /**
+   * Stores the access_token in both object and persistent store
+   *
+   * @param string $token the access_token
+   */
+  protected function clearAccessToken() {
+    $this->accessToken = null;
+    $this->clearPersistentData('access_token');
   }
 
   /**
@@ -458,8 +489,8 @@ abstract class EtalioBase
   protected function getCodeFromRequest() {
     if (isset($_REQUEST['code'])) {
       if ($this->state !== null &&
-          isset($_REQUEST['state']) &&
-          $this->state === $_REQUEST['state']) {
+        isset($_REQUEST['state']) &&
+        $this->state === $_REQUEST['state']) {
 
         // CSRF state has done its job, so clear it
         $this->state = null;
@@ -509,12 +540,12 @@ abstract class EtalioBase
           $this->getUrl('token'),
           "POST",
           $params = [
-                      'client_id' => $this->appId,
-                      'client_secret' => $this->appSecret,
-                      'redirect_uri' => $this->redirectUri,
-                      'grant_type' => 'authorization_code',
-                      'code' => $code,
-                    ]
+            'client_id' => $this->appId,
+            'client_secret' => $this->appSecret,
+            'redirect_uri' => $this->redirectUri,
+            'grant_type' => 'authorization_code',
+            'code' => $code,
+          ]
         );
     } catch (EtalioApiException $e) {
       // most likely that user very recently revoked authorization.
@@ -555,10 +586,10 @@ abstract class EtalioBase
       // need to circumvent json_decode by calling _oauthRequest
       // directly, since response isn't JSON format.
       $params = [
-                  'client_id' => $this->appId,
-                  'client_secret' => $this->appSecret,
-                  'grant_type' => 'client_credentials',
-                ];
+        'client_id' => $this->appId,
+        'client_secret' => $this->appSecret,
+        'grant_type' => 'client_credentials',
+      ];
       $access_token_response =
         $this->makeRequest($this->getUrl('token'),"POST",$params);
     } catch (EtalioApiException $e) {
@@ -591,12 +622,12 @@ abstract class EtalioBase
       // need to circumvent json_decode by calling _oauthRequest
       // directly, since response isn't JSON format.
       $params = [
-                  'client_id' => $this->appId,
-                  'client_secret' => $this->appSecret,
-                  'username' => $data['msisdn'],
-                  'password' => $data['password'],
-                  'grant_type' => 'password',
-                ];
+        'client_id' => $this->appId,
+        'client_secret' => $this->appSecret,
+        'username' => $data['msisdn'],
+        'password' => $data['password'],
+        'grant_type' => 'password',
+      ];
       $access_token_response =
         $this->makeRequest($this->getUrl('token'),"POST",$params);
     } catch (EtalioApiException $e) {
@@ -633,11 +664,11 @@ abstract class EtalioBase
       // need to circumvent json_decode by calling _oauthRequest
       // directly, since response isn't JSON format.
       $params = [
-                  'client_id' => $this->appId,
-                  'client_secret' => $this->appSecret,
-                  'refresh_token' => $this->refreshToken,
-                  'grant_type' => 'refresh_token',
-                ];
+        'client_id' => $this->appId,
+        'client_secret' => $this->appSecret,
+        'refresh_token' => $this->refreshToken,
+        'grant_type' => 'refresh_token',
+      ];
       $access_token_response =
         $this->makeRequest($this->getUrl('token'),"POST",$params);
     } catch (EtalioApiException $e) {
@@ -745,17 +776,17 @@ abstract class EtalioBase
     // fall back to IPv6 and the error EHOSTUNREACH is returned by the
     // operating system.
     if ($result === false && empty($opts[CURLOPT_IPRESOLVE])) {
-        $matches = array();
-        $regex = '/Failed to connect to ([^:].*): Network is unreachable/';
-        if (preg_match($regex, curl_error($ch), $matches)) {
-          if (strlen(@inet_pton($matches[1])) === 16) {
-            $this->errorLog('Invalid IPv6 configuration on server, '.
-                           'Please disable or get native IPv6 on your server.');
-            self::$curlOpts[CURLOPT_IPRESOLVE] = CURL_IPRESOLVE_V4;
-            curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-            $result = curl_exec($ch);
-          }
+      $matches = array();
+      $regex = '/Failed to connect to ([^:].*): Network is unreachable/';
+      if (preg_match($regex, curl_error($ch), $matches)) {
+        if (strlen(@inet_pton($matches[1])) === 16) {
+          $this->errorLog('Invalid IPv6 configuration on server, '.
+            'Please disable or get native IPv6 on your server.');
+          self::$curlOpts[CURLOPT_IPRESOLVE] = CURL_IPRESOLVE_V4;
+          curl_setopt($ch, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+          $result = curl_exec($ch);
         }
+      }
     }
     $this->debug("Data recieved from ".$method." ".$url.": ".$result);
     if ($result === false) {
@@ -809,8 +840,8 @@ abstract class EtalioBase
       case 'Exception':
         $message = $e->getMessage();
         if ((strpos($message, 'Error validating access_token') !== false) ||
-            (strpos($message, 'Invalid OAuth access_token') !== false) ||
-            (strpos($message, 'An active access_token must be used') !== false)
+          (strpos($message, 'Invalid OAuth access_token') !== false) ||
+          (strpos($message, 'An active access_token must be used') !== false)
         ) {
           $this->destroySession();
         }
@@ -856,15 +887,20 @@ abstract class EtalioBase
     // print 'error_log: '.$msg."\n";
     // @codeCoverageIgnoreEnd
   }
+
   /**
    * Destroy the current session
    */
   public function destroySession() {
     $this->debug("Destroying session");
-    $this->accessToken = null;
-    $this->refreshToken = null;
+    $this->clearTokens();
     $this->code = null;
     $this->clearAllPersistentData();
+  }
+
+  private function clearTokens() {
+    $this->clearAccessToken();
+    $this->clearRefreshToken();
   }
 
   /**
