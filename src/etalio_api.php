@@ -70,6 +70,7 @@ abstract class EtalioApi extends EtalioBase
       'authorize'             => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/authorize',
       'revoke'                => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/revoke',
       'oidc-authorize'        => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authorize',
+      'oidc-ape'              => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/ape',
     ]);
   }
 
@@ -551,6 +552,18 @@ abstract class EtalioApi extends EtalioBase
     if($res && isset($res)){
       return $res;
     }
+    return false;
+  }
+
+  public function getLoa($msisdn, $method = 'GET'){
+    if (isset($msisdn) && $msisdn) {
+      $res = $this->apiCall('oidc-ape', $method, array('msisdn' => $msisdn), [ parent::JSON_CONTENT_TYPE ]);
+    } else {
+      return false;
+    }
+
+    if(is_array($res))
+      return $res;
     return false;
   }
 
