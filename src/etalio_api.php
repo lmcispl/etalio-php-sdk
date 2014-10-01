@@ -71,6 +71,7 @@ abstract class EtalioApi extends EtalioBase
       'revoke'                => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/revoke',
       'oidc-authorize'        => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authorize',
       'oidc-ape'              => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/ape',
+      'oidc-auth-sms'         => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/sms',
     ]);
   }
 
@@ -81,6 +82,13 @@ abstract class EtalioApi extends EtalioBase
 
   public function isAuthenticated(){
     return ($this->getCurrentProfile())?true:false;
+  }
+
+  public function authenticateSms(Array $data){
+    $status = $this->apiCall('oidc-auth-sms', 'POST', $data, [ parent::JSON_CONTENT_TYPE ]);
+    if(is_array($status))
+      return $status;
+    return false;
   }
 
   public function handleMsisdn(Array $data){
