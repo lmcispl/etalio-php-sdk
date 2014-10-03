@@ -81,11 +81,7 @@ abstract class EtalioApi extends EtalioBase
   }
 
   public function isAuthenticated(){
-    try{
-      return ($this->getUserinfo())?true:false;
-    } catch (EtalioApiException $e){
-      return ($this->getCurrentProfile())?true:false;
-    }
+    return $this->isAccessTokenExpired();
   }
 
   public function authenticateSms(Array $data){

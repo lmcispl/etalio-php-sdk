@@ -29,7 +29,7 @@ class EtalioWithSessionStore extends EtalioApi
   const ETALIOSS_COOKIE_EXPIRE = 31556926; // 1 year
 
   // Keys we support to store in the persistent data
-  protected static $kSupportedKeys = array('state', 'nonce', 'access_token', 'refresh_token');
+  protected static $kSupportedKeys = array('state', 'nonce', 'access_token', 'refresh_token', 'access_token_expiration_time');
 
   /**
    * Identical to the parent constructor, except that

@@ -118,12 +118,16 @@ abstract class EtalioBase
   protected $refreshToken;
 
   /**
+   * @var int the expiration time of the access token
+   */
+  private $accessTokenExpirationTime;
+
+  /**
    * The uri that handles callbacks from OAuth
    *
    * @var string
    */
   protected $redirectUri;
-
   /**
    * If debug functions should be activated
    *
@@ -504,6 +508,22 @@ abstract class EtalioBase
     return false;
   }
 
+  protected function setAccessTokenExpirationTime($time) {
+    $this->accessTokenExpirationTime = $time;
+    $this->setPersistentData('access_token_expiration_time', $time);
+  }
+
+  protected function isAccessTokenExpired(){
+    $this->accessTokenExpirationTime = $this->getPersistentData('access_token_expiration_time');
+    if(!isset($this->accessTokenExpirationTime))
+      return false;
+    return $this->accessTokenExpirationTime > time();
+  }
+
+  protected function clearAccessTokenExpirationTime(){
+    $this->clearPersistentData('access_token_expiration_time');
+  }
+
   /**
    * Lays down a CSRF state token for this process.
    */
@@ -570,6 +590,10 @@ abstract class EtalioBase
     $this->setAccessToken($response_params['access_token']);
     if (isset($response_params['refresh_token'])) {
       $this->setRefreshToken($response_params['refresh_token']);
+    }
+
+    if (isset($response_params['expires_in'])){
+      $this->setAccessTokenExpirationTime($response_params['expires_in'] + time());
     }
     return $response_params['access_token'];
   }
@@ -902,6 +926,7 @@ abstract class EtalioBase
   private function clearTokens() {
     $this->clearAccessToken();
     $this->clearRefreshToken();
+    $this->clearAccessTokenExpirationTime();
   }
 
   /**
@@ -964,4 +989,5 @@ abstract class EtalioBase
    * @return void
    */
   abstract protected function clearAllPersistentData();
+
 }
