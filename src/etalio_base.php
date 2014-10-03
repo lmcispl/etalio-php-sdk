@@ -709,6 +709,7 @@ abstract class EtalioBase
       array_merge($headers,["Authorization: Bearer ".$this->getAccessToken()]), $files);
     if((strpos($result, self::EXPIRED_ACCESS_TOKEN_STRING) !== false)) {
       $this->debug("The accessToken was expired, trying to do a refresh...");
+      $this->clearAccessToken();
       if($this->refreshAccessToken()) {
         $this->debug("New accessToken recieved, trying the authorized request again.");
         $result = $this->makeRequest($url, $method, $params,
