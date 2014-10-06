@@ -510,6 +510,7 @@ abstract class EtalioBase
 
   protected function setAccessTokenExpirationTime($time) {
     $this->accessTokenExpirationTime = $time;
+    self::errorLog('Setting expiration time to: '.$time);
     $this->setPersistentData('access_token_expiration_time', $time);
   }
 
@@ -580,6 +581,7 @@ abstract class EtalioBase
     }
 
     $response_params = json_decode($access_token_response,true);
+
     if (!isset($response_params['access_token']) || !isset($response_params['token_type'])) {
       $this->debug("One of access_token, id_token, and token_type is not part of the response");
       return false;
@@ -592,9 +594,9 @@ abstract class EtalioBase
       $this->setRefreshToken($response_params['refresh_token']);
     }
 
-    if (isset($response_params['expires_in'])){
+    if (isset($response_params['expires_in']))
       $this->setAccessTokenExpirationTime($response_params['expires_in'] + time());
-    }
+
     return $response_params['access_token'];
   }
 
@@ -665,6 +667,10 @@ abstract class EtalioBase
     }
 
     $response_params = json_decode($access_token_response,true);
+
+    if (isset($response_params['expires_in']))
+      $this->setAccessTokenExpirationTime($response_params['expires_in'] + time());
+
     if (!isset($response_params['access_token'])) {
       return $response_params;
     }
