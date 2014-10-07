@@ -233,11 +233,9 @@ abstract class EtalioBase
    */
   public function authenticateUser() {
     $this->debug("Authenticating user");
-
-    if($this->isEmptyString([$this->accessToken,$this->refreshToken])) {
+    if($this->isEmptyString([$this->accessToken,$this->refreshToken]) || $this->hasCodeFromRequest()) {
       $this->debug("Trying to authenticate user from code");
       return $this->getAccessTokenFromCode();
-
     } elseif (!$this->isEmptyString($this->refreshToken)) {
       $this->debug("No access_token but a refresh_token, trying to refresh...");
       return $this->refreshAccessToken();
@@ -245,8 +243,6 @@ abstract class EtalioBase
       $this->debug("No access_token or refresh_token");
       return false;
     }
-    $this->debug("New access_token: ".$this->accessToken);
-    return $this->accessToken;
   }
 
   /**
@@ -491,18 +487,23 @@ abstract class EtalioBase
    *                  code could not be determined.
    */
   protected function getCodeFromRequest() {
+    if ($this->hasCodeFromRequest()){
+      // CSRF state has done its job, so clear it
+      $this->state = null;
+      $this->clearPersistentData('state');
+      return $_REQUEST['code'];
+    }
+    return false;
+  }
+
+  protected function hasCodeFromRequest(){
     if (isset($_REQUEST['code'])) {
       if ($this->state !== null &&
         isset($_REQUEST['state']) &&
-        $this->state === $_REQUEST['state']) {
-
-        // CSRF state has done its job, so clear it
-        $this->state = null;
-        $this->clearPersistentData('state');
-        return $_REQUEST['code'];
+        $this->state === $_REQUEST['state']){
+        return true;
       } else {
         $this->errorLog('CSRF state token does not match one provided.');
-        return false;
       }
     }
     return false;
