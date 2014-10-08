@@ -72,6 +72,7 @@ abstract class EtalioApi extends EtalioBase
       'oidc-authorize'        => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authorize',
       'oidc-ape'              => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/ape',
       'oidc-auth-sms'         => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/sms',
+      'oidcAuthenticateSms'   => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/sms',
     ]);
   }
 
@@ -123,6 +124,20 @@ abstract class EtalioApi extends EtalioBase
     );
 
     return $this->handleMsisdn($params);
+  }
+
+  /**
+   * Will send an authentication sms to the msisdn
+   *
+   * The user will need to be registered, and the the access token must come from a
+   * trusted application
+   *
+   * @param $msisdn
+   * @return mixed the json response as an array
+   */
+  public function oidcAuthenticateSms($msisdn){
+    $data = ['msisdn' => $msisdn];
+    return $this->apiCall('oidcAuthenticateSms', 'POST', $data, [ parent::JSON_CONTENT_TYPE ]);
   }
 
   /**
