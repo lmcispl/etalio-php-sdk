@@ -73,6 +73,7 @@ abstract class EtalioApi extends EtalioBase
       'oidc-ape'              => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/ape',
       'oidc-auth-sms'         => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/sms',
       'oidcAuthenticateSms'   => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/sms',
+      'oidcAuthenticateStatus'=> $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/status',
     ]);
   }
 
@@ -138,6 +139,19 @@ abstract class EtalioApi extends EtalioBase
   public function oidcAuthenticateSms($msisdn){
     $data = ['msisdn' => $msisdn];
     return $this->apiCall('oidcAuthenticateSms', 'POST', $data, [ parent::JSON_CONTENT_TYPE ]);
+  }
+
+
+  /**
+   * Checks the status for the current authentication process
+   *
+   * The user will need to be registered, and the the access token must come from a
+   * trusted application
+   *
+   * @return mixed the json response as an array
+   */
+  public function oidcAuthenticateStatus(){
+    return $this->apiCall('oidcAuthenticateStatus');
   }
 
   /**
