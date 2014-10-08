@@ -50,30 +50,31 @@ abstract class EtalioApi extends EtalioBase
 
   protected function createDomainMap(){
     $this->domainMap = array_merge($this->domainMap, [
-      'myprofile'             => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/me',
-      'userinfo'              => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/userinfo',
-      'profiles'              => $this->baseUrlApi . '/' . self::API_VERSION . '/profiles',
-      'profile'               => $this->baseUrlApi . '/' . self::API_VERSION . '/profile',
-      'profileClaim'          => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/claim',
-      'profileApplications'   => $this->baseUrlApi . '/' . self::API_VERSION . '/profile',
-      'application'           => $this->baseUrlApi . '/' . self::API_VERSION . '/application',
-      'applications'          => $this->baseUrlApi . '/' . self::API_VERSION . '/applications',
-      'applicationKeys'       => $this->baseUrlApi . '/' . self::API_VERSION . '/applications',
-      'categories'            => $this->baseUrlApi . '/' . self::API_VERSION . '/categories',
-      'scopes'                => $this->baseUrlApi . '/' . self::API_VERSION . '/scopes',
-      'msisdn'                => $this->baseUrlApi . '/' . self::API_VERSION . '/msisdn',
-      'msisdnClaim'           => $this->baseUrlApi . '/' . self::API_VERSION . '/msisdn/claim',
-      'netops'                => $this->baseUrlApi . '/' . self::API_VERSION . '/netops',
-      'resetPassword'         => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/password-reset',
-      'verifyResetPassword'   => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/password/reset',
-      'token'                 => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/token',
-      'authorize'             => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/authorize',
-      'revoke'                => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/revoke',
-      'oidc-authorize'        => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authorize',
-      'oidc-ape'              => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/ape',
-      'oidc-auth-sms'         => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/sms',
-      'oidcAuthenticateSms'   => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/sms',
-      'oidcAuthenticateStatus'=> $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/status',
+      'myprofile'                  => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/me',
+      'userinfo'                   => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/userinfo',
+      'profiles'                   => $this->baseUrlApi . '/' . self::API_VERSION . '/profiles',
+      'profile'                    => $this->baseUrlApi . '/' . self::API_VERSION . '/profile',
+      'profileClaim'               => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/claim',
+      'profileApplications'        => $this->baseUrlApi . '/' . self::API_VERSION . '/profile',
+      'application'                => $this->baseUrlApi . '/' . self::API_VERSION . '/application',
+      'applications'               => $this->baseUrlApi . '/' . self::API_VERSION . '/applications',
+      'applicationKeys'            => $this->baseUrlApi . '/' . self::API_VERSION . '/applications',
+      'categories'                 => $this->baseUrlApi . '/' . self::API_VERSION . '/categories',
+      'scopes'                     => $this->baseUrlApi . '/' . self::API_VERSION . '/scopes',
+      'msisdn'                     => $this->baseUrlApi . '/' . self::API_VERSION . '/msisdn',
+      'msisdnClaim'                => $this->baseUrlApi . '/' . self::API_VERSION . '/msisdn/claim',
+      'netops'                     => $this->baseUrlApi . '/' . self::API_VERSION . '/netops',
+      'resetPassword'              => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/password-reset',
+      'verifyResetPassword'        => $this->baseUrlApi . '/' . self::API_VERSION . '/profile/password/reset',
+      'token'                      => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/token',
+      'authorize'                  => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/authorize',
+      'revoke'                     => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/revoke',
+      'oidc-authorize'             => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authorize',
+      'oidc-ape'                   => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/ape',
+      'oidc-auth-sms'              => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/sms',
+      'oidcAuthenticateSms'        => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/sms',
+      'oidcAuthenticateSmsConfirm' => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/sms/confirm',
+      'oidcAuthenticateStatus'     => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/status',
     ]);
   }
 
@@ -152,6 +153,18 @@ abstract class EtalioApi extends EtalioBase
    */
   public function oidcAuthenticateStatus(){
     return $this->apiCall('oidcAuthenticateStatus');
+  }
+
+  /**
+   * Uploads the status code delivered by sms in `oidcAuthenticateSms`
+   *
+   * This call is only available to trusted applications
+   *
+   * @param $code string the code sent to the device
+   * @return mixed the json response as an array
+   */
+  public function oidcAuthenticateSmsConfirm($code){
+    return $this->apiCall('oidcAuthenticateSmsConfirm', 'POST', ['code' => $code], [parent::JSON_CONTENT_TYPE]);
   }
 
   /**
