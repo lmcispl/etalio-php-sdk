@@ -634,6 +634,10 @@ abstract class EtalioBase
       return false;
     }
     $this->setAccessToken($response_params['access_token']);
+
+    if (isset($response_params['expires_in']))
+      $this->setAccessTokenExpirationTime($response_params['expires_in'] + time());
+
     return $response_params['access_token'];
   }
 
