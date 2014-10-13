@@ -75,6 +75,7 @@ abstract class EtalioApi extends EtalioBase
       'oidcAuthenticateSms'        => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/sms',
       'oidcAuthenticateSmsConfirm' => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/sms/confirm',
       'oidcAuthenticateStatus'     => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/status',
+      'oidcAuthenticateLoa3'       => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/loa3',
     ]);
   }
 
@@ -209,6 +210,29 @@ abstract class EtalioApi extends EtalioBase
       $this->authenticateUser();
     }
     return $this->apiCall('oidc-authorize', 'POST', $params, [ self::JSON_CONTENT_TYPE ]);
+  }
+
+  /**
+   * Starts the authentication for loa 3.
+   *
+   * The first factor is always password, and the second factor can be sms, ussd, push, etc.
+   *
+   * @param $msisdn string
+   * @param $password string
+   * @param $secondary string
+   * @return bool|mixed status if success, otherwise false
+   *
+   * @see https://developer.etalio.com/docs/OAuth2_OpenID_Connect_authenticate_loa3.html
+   */
+  public function authenticateLoa3($msisdn, $password, $secondary){
+    $status = $this->apiCall('oidcAuthenticateLoa3', 'POST', [
+      'msisdn' => $msisdn,
+      'password' => $password,
+      'secondary' => $secondary,
+    ], [self::JSON_CONTENT_TYPE]);
+    if(is_array($status))
+      return $status;
+    return false;
   }
 
   public function profileClaim(Array $params) {
