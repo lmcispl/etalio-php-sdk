@@ -242,6 +242,13 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
+  public function getNetopsForHni($hni){
+    $res = $this->apiCall('netops', 'GET', array('hni' => $hni), [ parent::JSON_CONTENT_TYPE ]);
+    if(is_array($res))
+      return $res;
+    return false;
+  }
+
   public function getNetops($msisdn = ''){
     if (isset($msisdn) && $msisdn) {
       $res = $this->apiCall('netops', 'GET', array('msisdn' => $msisdn), [ parent::JSON_CONTENT_TYPE ]);
