@@ -315,7 +315,7 @@ abstract class EtalioApi extends EtalioBase
   }
 
   public function updateCurrentProfile(Array $profile){
-    return $this->apiCall('myprofile','PUT',$profile);
+    return $this->apiCall('myprofile', 'PUT', $profile, [parent::JSON_CONTENT_TYPE]);
   }
 
   public function getCurrentProfileApplications(){
