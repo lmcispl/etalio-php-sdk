@@ -73,6 +73,7 @@ abstract class EtalioApi extends EtalioBase
       'oidc-ape'                   => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/ape',
       'oidc-auth-sms'              => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/sms',
       'oidcAuthenticateSms'        => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/sms',
+      'oidcAuthenticateUssd'       => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/ussd',
       'oidcAuthenticateSmsConfirm' => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/sms/confirm',
       'oidcAuthenticateStatus'     => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/status',
       'oidcAuthenticateLoa3'       => $this->baseUrlApi . '/' . self::API_VERSION . '/oauth2/oidc/authenticate/loa3',
@@ -143,6 +144,24 @@ abstract class EtalioApi extends EtalioBase
     return $this->apiCall('oidcAuthenticateSms', 'POST', $data, [ parent::JSON_CONTENT_TYPE ]);
   }
 
+  /**
+   * Sends a USSD authentication message to the msisdn.
+   *
+   * The user will need to be registered, and the access token must come
+   * from a trusted application.
+   *
+   * @param $msisdn string
+   * @param $text string the message to be displayed to the user. The message must contain the buttons to press in order to accept/deny the authentication.
+   * @return mixed the json response as an array
+   */
+  public function oidcAuthenticateUssd($msisdn, $text) {
+    $payload = [
+      'msisdn' => $msisdn,
+      'text' => $text,
+    ];
+    return $this->apiCall('oidcAuthenticateUssd', 'POST', $payload,
+      [parent::JSON_CONTENT_TYPE]);
+  }
 
   /**
    * Checks the status for the current authentication process

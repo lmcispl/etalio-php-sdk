@@ -44,7 +44,7 @@ abstract class EtalioBase
   /**
    * Version of this SDK
    */
-  const VERSION = '0.3.6';
+  const VERSION = '0.4.7';
 
   /**
    * The string to look for when an access token has expired
