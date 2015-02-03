@@ -187,6 +187,23 @@ abstract class EtalioApi extends EtalioBase
     return $this->apiCall('oidcAuthenticateSmsConfirm', 'POST', ['code' => $code], [parent::JSON_CONTENT_TYPE]);
   }
 
+
+  /**
+   * Authenticates a user using the password and sms code.
+   *
+   * Used for loa3 authentication.
+   *
+   * @param string $password
+   * @param string $code
+   * @return bool|mixed
+   */
+  public function authenticateLoa3WithPasswordAndCode($password, $code){
+    return $this->callAuthenticateLoa3([
+      'password' => $password,
+      '$code' => $code,
+    ]);
+  }
+
   /**
    * Authorize an app or redirect to grant application
    */
@@ -244,12 +261,46 @@ abstract class EtalioApi extends EtalioBase
    * @see https://developer.etalio.com/docs/OAuth2_OpenID_Connect_authenticate_loa3.html
    */
   public function authenticateLoa3($msisdn, $password, $secondary){
-    $status = $this->apiCall('oidcAuthenticateLoa3', 'POST', [
+    $payload = [
       'msisdn' => $msisdn,
+      'primary' => 'password',
       'password' => $password,
       'secondary' => $secondary,
-    ], [self::JSON_CONTENT_TYPE]);
-    if(is_array($status))
+    ];
+    return $this->callAuthenticateLoa3($payload);
+  }
+
+  /**
+   * Starts the authentication for loa 3.
+   *
+   * The first factor is always password, and the second factor can be sms, ussd, push, etc.
+   *
+   * @param string $msisdn the MSISDN
+   * @param string $primary the primary method if not password
+   * @param string $secondary string
+   * @return bool|mixed status if success, otherwise false
+   *
+   * @throws \Exception When calling this method with primary method 'password'. In this case you should call the method @authenticateLoa3 instead.
+   * @see https://developer.etalio.com/docs/OAuth2_OpenID_Connect_authenticate_loa3.html
+   */
+  public function authenticateLoa3WithPrimaryAndSecondary($msisdn, $primary, $secondary){
+    if(strcmp('password', $primary) === 0)
+      throw new \Exception("Should use authenticatedLoa3 method instead.");
+    $payload = [
+      'msisdn' => $msisdn,
+      'primary' => $primary,
+      'secondary' => $secondary,
+    ];
+    return $this->callAuthenticateLoa3($payload);
+  }
+
+  /**
+   * @param $payload
+   * @return bool|mixed
+   */
+  private function callAuthenticateLoa3($payload) {
+    $status = $this->apiCall('oidcAuthenticateLoa3', 'POST', $payload, [self::JSON_CONTENT_TYPE]);
+    if (is_array($status))
       return $status;
     return false;
   }
@@ -299,8 +350,8 @@ abstract class EtalioApi extends EtalioBase
       return $res;
     return false;
   }
-
   //Endpoint for just POST
+
   public function resetPassword(Array $params) {
     return $this->apiCall('resetPassword', 'POST', $params, [ parent::JSON_CONTENT_TYPE ]);
   }
@@ -480,6 +531,7 @@ abstract class EtalioApi extends EtalioBase
 
   }
 
+
   public function getApplications($authorUuid = NULL, $extra = array() ){
     $data = array('author' => $authorUuid);
     if (count($extra) > 0){
@@ -490,7 +542,6 @@ abstract class EtalioApi extends EtalioBase
       return $apps;
     return false;
   }
-
 
   public function getApplication($id){
     $this->setDomainPath('application-'.$id, $this->domainMap['application']."/".$id);
