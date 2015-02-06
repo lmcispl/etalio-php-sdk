@@ -200,7 +200,7 @@ abstract class EtalioApi extends EtalioBase
   public function authenticateLoa3WithPasswordAndCode($password, $code){
     return $this->callAuthenticateLoa3([
       'password' => $password,
-      '$code' => $code,
+      'code' => $code,
     ]);
   }
 
