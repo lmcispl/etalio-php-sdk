@@ -184,7 +184,7 @@ abstract class EtalioApi extends EtalioBase
    * @return mixed the json response as an array
    */
   public function oidcAuthenticateSmsConfirm($code){
-    return $this->apiCall('oidcAuthenticateSmsConfirm', 'POST', ['code' => $code], [parent::JSON_CONTENT_TYPE]);
+    return $this->callAuthenticateSms(['code' => $code]);
   }
 
 
@@ -198,10 +198,18 @@ abstract class EtalioApi extends EtalioBase
    * @return bool|mixed
    */
   public function authenticateLoa3WithPasswordAndCode($password, $code){
-    return $this->callAuthenticateLoa3([
+    return $this->callAuthenticateSms([
       'password' => $password,
       'code' => $code,
     ]);
+  }
+
+  /**
+   * @param $payload
+   * @return mixed
+   */
+  private function callAuthenticateSms($payload) {
+    return $this->apiCall('oidcAuthenticateSmsConfirm', 'POST', $payload, [parent::JSON_CONTENT_TYPE]);
   }
 
   /**
@@ -340,7 +348,6 @@ abstract class EtalioApi extends EtalioBase
       return $res;
     return false;
   }
-
   public function getNetopEula($id){
     $key = 'netop'.$id;
     $url = $this->domainMap['netops']."/" . $id . "/eula";
@@ -350,6 +357,7 @@ abstract class EtalioApi extends EtalioBase
       return $res;
     return false;
   }
+
   //Endpoint for just POST
 
   public function resetPassword(Array $params) {
@@ -527,10 +535,10 @@ abstract class EtalioApi extends EtalioBase
     return false;
   }
 
+
   public function getProfileApplications($profileId){
 
   }
-
 
   public function getApplications($authorUuid = NULL, $extra = array() ){
     $data = array('author' => $authorUuid);
