@@ -624,8 +624,8 @@ abstract class EtalioApi extends EtalioBase
   }
 
   public function setApplicationFeaturedImage($applicationId, $imagePath, $imageType, $imageName){
-    $imageDomainPath = 'application-'.$applicationId.'-featured-image';
-    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/featuredImage');
+    $imageDomainPath = 'application-'.$applicationId.'-promoted-image';
+    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/promoted-image');
     $files = [];
     if(class_exists("CURLFile")){
       // If PHP5.5 <
@@ -642,8 +642,8 @@ abstract class EtalioApi extends EtalioBase
   }
 
   public function getApplicationFeaturedImage($applicationId, $size){
-    $imageDomainPath = 'application-'.$applicationId.'-image';
-    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/image');
+    $imageDomainPath = 'application-'.$applicationId.'-promoted-image';
+    $this->setDomainPath($imageDomainPath, $this->domainMap['application'].'/'.$applicationId.'/promoted-image');
     $res = $this->apiCall($imageDomainPath, "GET", ['size' => $size]);
     if($res && isset($res)){
       return $res;
