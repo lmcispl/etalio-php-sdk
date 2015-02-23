@@ -44,7 +44,7 @@ abstract class EtalioBase
   /**
    * Version of this SDK
    */
-  const VERSION = '0.4.7';
+  const VERSION = '0.4.11';
 
   /**
    * The string to look for when an access token has expired
@@ -59,7 +59,7 @@ abstract class EtalioBase
   /**
    * Default base url
    */
-  protected $baseUrlLogin = "https://login.etalio.com";
+  protected $baseUrlLogin = "https://login.mobileconnect.io";
 
   /**
    * Default options for curl.

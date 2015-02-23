@@ -118,7 +118,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
     $_SERVER['REQUEST_URI'] = '/unit-tests.php';
     $login_url = parse_url($etalio->getLoginUrl());
     $this->assertEquals('https', $login_url['scheme']);
-    $this->assertEquals('login.etalio.com', $login_url['host']);
+    $this->assertEquals('login.mobileconnect.io', $login_url['host']);
     $this->assertEquals('/oauth2', $login_url['path']);
     $expected_login_params =
       array('client_id' => self::APP_ID,
@@ -146,7 +146,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
                           'nonsense' => 'nonsense');
     $login_url = parse_url($etalio->getLoginUrl($extra_params));
     $this->assertEquals('https', $login_url['scheme']);
-    $this->assertEquals('login.etalio.com', $login_url['host']);
+    $this->assertEquals('login.mobileconnect.io', $login_url['host']);
     $this->assertEquals('/oauth2', $login_url['path']);
     $expected_login_params =
       array_merge(
@@ -176,7 +176,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
                           'nonsense' => 'nonsense');
     $login_url = parse_url($etalio->getLoginUrl($extra_params));
     $this->assertEquals('https', $login_url['scheme']);
-    $this->assertEquals('login.etalio.com', $login_url['host']);
+    $this->assertEquals('login.mobileconnect.io', $login_url['host']);
     $this->assertEquals('/oauth2', $login_url['path']);
     // expect api to flatten array params to comma separated list
     // should do the same here before asserting to make sure API is behaving
