@@ -16,7 +16,6 @@ class Authenticator extends EtalioBase {
   const CLIENT_SECRET = 'client_secret';
   const ETALIOSS_COOKIE_EXPIRE = 31556926; // 1 year
   const NONCE = 'nonce';
-  const REDIRECT_URI = 'redirect_uri';
   const REFRESH_TOKEN = 'refresh_token';
   const STATE = 'state';
   const TOKEN_URL = 'token_url';
@@ -41,7 +40,6 @@ class Authenticator extends EtalioBase {
     self::USERINFO_URL,
     self::CLIENT_ID,
     self::CLIENT_SECRET,
-    self::REDIRECT_URI,
     self::COUNTRY,
     self::CURRENCY,
     self::SUBSCRIBER_ID,
@@ -77,9 +75,10 @@ class Authenticator extends EtalioBase {
   }
 
   public function loadDiscovery(DiscoveryDataParser $data) {
-    $this->setPersistentData(self::CLIENT_ID, $data->getClientId());
     $this->setAppId($data->getClientId());
-
+    $this->setPersistentData(self::CLIENT_ID, $data->getClientId());
+    $this->setAppSecret($this->getPersistentData(self::CLIENT_SECRET));
+    
     $this->setPersistentData(self::AUTH_URL, $data->findAuthorizationUrl());
     $this->setPersistentData(self::USERINFO_URL, $data->findUserinfoUri());
     $this->setPersistentData(self::TOKEN_URL, $data->findTokenUri());
@@ -89,13 +88,8 @@ class Authenticator extends EtalioBase {
     $this->setPersistentData(self::SUBSCRIBER_ID, $data->getSubscriberId());
 
     $this->createDomainMap();
-    $this->setAppDetails();
   }
 
-  private function setAppDetails(){
-    $this->setAppSecret($this->getPersistentData(self::CLIENT_SECRET));
-    $this->setRedirectUri($this->getPersistentData(self::REDIRECT_URI));
-  }
   public function isDiscoveryLoaded() {
     $url = $this->getPersistentData(self::TOKEN_URL);
     return !empty($url);
