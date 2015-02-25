@@ -16,4 +16,4 @@
  **/
 
 $base = realpath(dirname(__FILE__) . '/..');
-require "$base/src/etalio_with_session_store.php";
+require "$base/vendor/autoload.php";

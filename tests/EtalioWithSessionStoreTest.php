@@ -20,7 +20,7 @@ namespace Etalio;
 class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   const APP_ID = '117743971608120';
   const SECRET = '9c8ea2071859659bea1246d33a9207cf';
-  const REDIRECT_URI = 'https://www.test.com/unit-tests.php';
+  const REDIRECT_URI = 'https://www.test.com/unit-EtalioWithSessionStoreTest.php';
 
   const MIGRATED_APP_ID = '174236045938435';
   const MIGRATED_SECRET = '0073dce2d95c4a5c2922d1827ea0cca6';
@@ -29,36 +29,6 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   const TEST_USER_2 = 499835484;
 
   private static $kExpiredAccessToken = 'AAABrFmeaJjgBAIshbq5ZBqZBICsmveZCZBi6O4w9HSTkFI73VMtmkL9jLuWsZBZC9QMHvJFtSulZAqonZBRIByzGooCZC8DWr0t1M4BL9FARdQwPWPnIqCiFQ';
-
-  private static function kSignedRequestWithEmptyValue() {
-    return '';
-  }
-
-  private static function kSignedRequestWithBogusSignature() {
-    $etalio = new ETALIOPublic(array(
-      'appId'  => self::APP_ID,
-      'secret' => 'bogus',
-    ));
-    return $etalio->publicMakeSignedRequest(
-      array(
-        'algorithm' => 'HMAC-SHA256',
-      )
-    );
-  }
-
-  private static function kSignedRequestWithWrongAlgo() {
-    $etalio = new ETALIOPublic(array(
-      'appId'  => self::APP_ID,
-      'secret' => self::SECRET,
-      'redirect_uri' => self::REDIRECT_URI,
-    ));
-    $data['algorithm'] = 'foo';
-    $json = json_encode($data);
-    $b64 = $etalio->publicBase64UrlEncode($json);
-    $raw_sig = hash_hmac('sha256', $b64, self::SECRET, $raw = true);
-    $sig = $etalio->publicBase64UrlEncode($raw_sig);
-    return $sig.'.'.$b64;
-  }
 
   public function testConstructor() {
     $etalio = new TransientEtalio(array(
@@ -107,6 +77,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testGetLoginURL() {
+    @session_start();
     $etalio = new EtalioWithSessionStore(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
@@ -115,7 +86,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
 
     // fake the HPHP $_SERVER globals
     $_SERVER['HTTP_HOST'] = 'www.test.com';
-    $_SERVER['REQUEST_URI'] = '/unit-tests.php';
+    $_SERVER['REQUEST_URI'] = '/unit-EtalioWithSessionStoreTest.php';
     $login_url = parse_url($etalio->getLoginUrl());
     $this->assertEquals('https', $login_url['scheme']);
     $this->assertEquals('login.mobileconnect.io', $login_url['host']);
@@ -133,6 +104,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testGetLoginURLWithExtraParams() {
+    @session_start();
     $etalio = new EtalioWithSessionStore(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
@@ -141,7 +113,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
 
     // fake the HPHP $_SERVER globals
     $_SERVER['HTTP_HOST'] = 'www.test.com';
-    $_SERVER['REQUEST_URI'] = '/unit-tests.php';
+    $_SERVER['REQUEST_URI'] = '/unit-EtalioWithSessionStoreTest.php';
     $extra_params = array('scope' => 'email, sms',
                           'nonsense' => 'nonsense');
     $login_url = parse_url($etalio->getLoginUrl($extra_params));
@@ -151,7 +123,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
     $expected_login_params =
       array_merge(
         array('client_id' => self::APP_ID,
-              'redirect_uri' => 'https://www.test.com/unit-tests.php'),
+              'redirect_uri' => 'https://www.test.com/unit-EtalioWithSessionStoreTest.php'),
         $extra_params);
     $query_map = array();
     parse_str($login_url['query'], $query_map);
@@ -162,6 +134,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testGetLoginURLWithScopeParamsAsArray() {
+    @session_start();
     $etalio = new EtalioWithSessionStore(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
@@ -170,7 +143,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
 
     // fake the HPHP $_SERVER globals
     $_SERVER['HTTP_HOST'] = 'www.test.com';
-    $_SERVER['REQUEST_URI'] = '/unit-tests.php';
+    $_SERVER['REQUEST_URI'] = '/unit-EtalioWithSessionStoreTest.php';
     $scope_params_as_array = array('email','sms','read_stream');
     $extra_params = array('scope' => $scope_params_as_array,
                           'nonsense' => 'nonsense');
@@ -185,7 +158,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
     $expected_login_params =
       array_merge(
         array('client_id' => self::APP_ID,
-              'redirect_uri' => 'https://www.test.com/unit-tests.php'),
+              'redirect_uri' => 'https://www.test.com/unit-EtalioWithSessionStoreTest.php'),
         $extra_params);
     $query_map = array();
     parse_str($login_url['query'], $query_map);
@@ -196,6 +169,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testGetCodeWithValidCSRFState() {
+    @session_start();
     $etalio = new ETALIOCode(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
@@ -211,6 +185,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testGetCodeWithInvalidCSRFState() {
+    @session_start();
     $etalio = new ETALIOCode(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
@@ -225,6 +200,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testGetCodeWithMissingCSRFState() {
+    @session_start();
     $etalio = new ETALIOCode(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
@@ -239,6 +215,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
 
   public function testPersistentCSRFState()
   {
+    @session_start();
     $etalio = new ETALIOCode(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
@@ -258,6 +235,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testLoginURLDefaults() {
+    @session_start();
     $_SERVER['HTTP_HOST'] = 'fbrell.com';
     $_SERVER['REQUEST_URI'] = '/examples';
     $etalio = new TransientEtalio(array(
@@ -271,6 +249,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testLoginURLCustomNext() {
+    @session_start();
     $_SERVER['HTTP_HOST'] = 'fbrell.com';
     $_SERVER['REQUEST_URI'] = '/examples';
     $etalio = new TransientEtalio(array(
@@ -292,6 +271,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testNonDefaultPort() {
+    @session_start();
     $_SERVER['HTTP_HOST'] = 'fbrell.com:8080';
     $_SERVER['REQUEST_URI'] = '/examples';
     $etalio = new TransientEtalio(array(
@@ -305,6 +285,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testSecureCurrentUrl() {
+    @session_start();
     $_SERVER['HTTP_HOST'] = 'fbrell.com';
     $_SERVER['REQUEST_URI'] = '/examples';
     $_SERVER['HTTPS'] = 'on';
@@ -319,6 +300,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testSecureCurrentUrlWithNonDefaultPort() {
+    @session_start();
     $_SERVER['HTTP_HOST'] = 'fbrell.com:8080';
     $_SERVER['REQUEST_URI'] = '/examples';
     $_SERVER['HTTPS'] = 'on';
@@ -333,6 +315,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testGetUserAndAccessTokenFromSession() {
+    @session_start();
     $etalio = new PersistentETALIOPublic([
      'appId'  => self::APP_ID,
      'secret' => self::SECRET,
@@ -348,6 +331,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testGetUserWithoutCodeOrSignedRequestOrSession() {
+    @session_start();
     $etalio = new PersistentETALIOPublic([
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
@@ -429,6 +413,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
 
 
   public function testSessionBackedEtalio() {
+    @session_start();
     $etalio = new PersistentETALIOPublic(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
@@ -448,6 +433,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testSessionBackedEtalioIgnoresUnsupportedKey() {
+    @session_start();
     $etalio = new PersistentETALIOPublic(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
@@ -466,6 +452,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testClearSessionBackedEtalio() {
+    @session_start();
     $etalio = new PersistentETALIOPublic(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
@@ -493,6 +480,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testSessionBackedEtalioIgnoresUnsupportedKeyInClear() {
+    @session_start();
     $etalio = new PersistentETALIOPublic(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
@@ -508,6 +496,7 @@ class PHPSDKTestCase extends \PHPUnit_Framework_TestCase {
   }
 
   public function testClearAllSessionBackedEtalio() {
+    @session_start();
     $etalio = new PersistentETALIOPublic(array(
       'appId'  => self::APP_ID,
       'secret' => self::SECRET,
