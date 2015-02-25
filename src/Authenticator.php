@@ -83,7 +83,6 @@ class Authenticator extends EtalioBase {
     $this->setPersistentData(self::AUTH_URL, $data->findAuthorizationUrl());
     $this->setPersistentData(self::USERINFO_URL, $data->findUserinfoUri());
     $this->setPersistentData(self::TOKEN_URL, $data->findTokenUri());
-    $this->setPersistentData(self::SCOPE, $data->findScope());
     $this->setPersistentData(self::CLIENT_SECRET, $data->getClientSecret());
     $this->setPersistentData(self::COUNTRY, $data->getCountry());
     $this->setPersistentData(self::CURRENCY, $data->getCurrency());
