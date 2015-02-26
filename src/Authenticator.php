@@ -76,11 +76,11 @@ class Authenticator extends EtalioBase {
 
   public function loadDiscovery(DiscoveryDataParser $data) {
     $this->setPersistentData(self::CLIENT_ID, $data->getClientId());
-    $this->setPersistentData(self::CLIENT_SECRET, $data->getClientId());
+    $this->setPersistentData(self::CLIENT_SECRET, $data->getClientSecret());
     $this->setAppId($data->getClientId());
     // These need to be stored again since the
     $this->setPersistentData(self::CLIENT_ID, $data->getClientId());
-    $this->setPersistentData(self::CLIENT_SECRET, $data->getClientId());
+    $this->setPersistentData(self::CLIENT_SECRET, $data->getClientSecret());
 
     $this->setAppSecret($this->getPersistentData(self::CLIENT_SECRET));
 
